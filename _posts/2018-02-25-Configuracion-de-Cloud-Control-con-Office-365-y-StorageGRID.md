@@ -9,7 +9,7 @@ Office 365 de Microsoft es uno de los servicios Cloud en modalidad SaaS mas util
 
 **“It’s your data. You own your data and retain all rights, title, and interest in the data your store with Office 365.”**
 
-[Cloud Control](https://cloud.netapp.com/cloud-control) de NetApp es el servicio que permite proteger los servicios Cloud SaaS de amenazas o borrados accidentales. Permite proteger los servicios Outlook, OneDrive y SharePoint de Microsoft Office 365 hacia un almacenamiento de objetos en el Cloud público como Amazon S3 o Azure, y Cloud privado como [StorageGRID](https://www.netapp.com/us/products/data-management-software/object-storage-grid-sds.aspx)
+[Cloud Control](https://cloud.netapp.com/cloud-control) de NetApp es el servicio que permite proteger los servicios Cloud SaaS de amenazas o borrados accidentales. Permite proteger los servicios Outlook, OneDrive y SharePoint de Microsoft Office 365 hacia un almacenamiento de objetos en cloud público como Amazon S3 o Azure, y Cloud privado como [StorageGRID](https://www.netapp.com/us/products/data-management-software/object-storage-grid-sds.aspx)
 
 ### Requisitos
 
