@@ -304,6 +304,6 @@ queue-worker-b99df4594-dr2nh         1/1       Running   1          1h
 
 Tras ello, con las credenciales generadas, se puede acceder a la url [http://localhost:31112/ui/](http://localhost:31112/ui/)
 
-![]({{site.baseurl}}/assets/img/2019-07-22-Instalando-OpenFaaS-en-docker-for-desktop-001.png)
+![]({{site.baseurl}}/assets/img/Instalando-OpenFaaS-en-docker-for-desktop-001.png)
 
 
