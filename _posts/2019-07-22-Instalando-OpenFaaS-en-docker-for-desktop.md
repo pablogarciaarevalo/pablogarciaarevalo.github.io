@@ -150,8 +150,6 @@ Use "helm [command] --help" for more information about a command.
 Se inicializa helm.
 
 ```posh
-PS C:\Users\pablo> kubectl -n kube-system create sa tiller && kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
-
 PS C:\Users\pablo> kubectl -n kube-system create sa tiller
 
 PS C:\Users\pablo> kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
