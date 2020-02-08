@@ -1,0 +1,127 @@
+I"�F<p>La creciente evolución de las aplicaciones monolíticas a arquitecturas de <a href="https://en.wikipedia.org/wiki/Microservices">microservicios</a>, hace necesaria que el acceso a los datos cambie, y se clasifiquen en datos estructurados y no estructurados para un acceso y tratamiento diferente. Este último tipo de datos (ficheros planos, imágenes, audio, video,…) está teniendo y tendrá un crecimiento de capacidad elevado formando repositorios conocidos como <a href="https://en.wikipedia.org/wiki/Data_lake">lagos de datos</a>.</p>
+
+<p>Ni la transición a las arquitecturas de microservicios es inmediata, ni tampoco lo es la migración de los datos actuales a un formato de almacenamiento de objetos. El protocolo de <a href="https://aws.amazon.com/s3/">Amazon S3</a> (Simple Storage Service) se ha convertido en un standard de acceso al almacenamiento de objetos que muchas soluciones implementan.</p>
+
+<p>Las cabinas de almacenamiento <a href="https://www.netapp.com/us/products/data-management-software/ontap.aspx">ONTAP</a> de NetApp no ofrecen actualmente protocolo S3 de forma nativa al igual que tampoco ofrecen <a href="https://en.wikipedia.org/wiki/List_of_file_transfer_protocols">otros protocolos</a>. En el caso de que el equipo de desarrollo quiera empezar a probar el acceso a los datos desde las nuevas aplicaciones con el protocolo S3 para poder valorar alternativas empresariales como <a href="https://www.netapp.com/us/products/data-management-software/object-storage-grid-sds.aspx">StorageGRID Webscale</a>, se puede construir muy rápidamente un servicio S3 aprovechando todas las ventajas de ONTAP con el software <a href="https://minio.io/">Minio</a> en ‘modo gateway’ como haríamos si necesitasemos acceso a otros protocolos. Minio es un software de almacenamiento de objetos open source compatible con la API Amazon S3 que se caracteriza por su simplicidad.</p>
+
+<h3 id="arquitectura">Arquitectura</h3>
+
+<p>La siguiente ilustración muestra una arquitectura donde conviven las aplicaciones antiguas y las nuevas que se quieren probar, accediendo a la misma cabina de almacenamiento ONTAP.</p>
+
+<p><img src="/assets/img/Almacenamiento-de-objetos-S3-en-netapp-ontap-001.png" alt="" /></p>
+
+<p>Las 3 capas (de arriba a abajo) de la imagen anterior tratan de representar lo siguiente:</p>
+<ul>
+  <li>A la izquierda las aplicaciones antiguas. A la derecha las aplicaciones nuevas.</li>
+  <li>A la izquierda el acceso desde las aplicaciones antiguas se realiza a través de un export NFS. A la derecha las aplicaciones nuevas acceden, a través de un <a href="https://en.wikipedia.org/wiki/Load_balancing_(computing)">balanceador de carga</a>, a almacenamiento de objetos S3 que se ofrece desde dos contenedores de docker con el software Minio.</li>
+  <li>El export NFS y el software Minio pueden acceder a datos diferentes o al mismo conjunto de datos a través de la funcionalidad <a href="http://community.netapp.com/t5/Tech-OnTap-Articles/Back-to-Basics-FlexClone/ta-p/84874">FlexClone</a>.</li>
+</ul>
+
+<p>Se plantean dos casos de uso posibles para esta arquitectura que se detallarán a continuación:</p>
+<ol>
+  <li>Utilizar el mismo conjunto de datos que actualmente las aplicaciones ya tienen accediendo a ONTAP.</li>
+  <li>Crear nuevos volúmenes manteniendo los beneficios que proporciona ONTAP, para que posteriormente el equipo de desarrollo copie los datos que necesite.</li>
+</ol>
+
+<h3 id="configuración-usando-los-mismos-datos">Configuración usando los mismos datos</h3>
+
+<p>En el caso de querer utilizar el mismo conjunto de datos que actualmente se ofrece a las aplicaciones por NFS, simplemente habría que realizar un FlexClone del voĺumen utilizado, montar el volumen en los servidores donde se tiene instalado el software docker, y ejecutar el software minio como contenedor. Se crea también un volumen diferente donde Minio guarda la configuración.</p>
+
+<h5 id="1-flexclone">1. FlexClone</h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; volume clone create <span class="nt">-vserver</span> svm1 <span class="nt">-flexclone</span> new_app_vol <span class="nt">-parent-volume</span> legacy_app_vol <span class="nt">-type</span> RW <span class="nt">-junction-active</span> <span class="nb">true</span> <span class="nt">-junction-path</span> /new_app_vol
+cluster1::&gt; volume create <span class="nt">-vserver</span> svm1 <span class="nt">-volume</span> new_app_config <span class="nt">-aggregate</span> aggr1 <span class="nt">-size</span> 5g <span class="nt">-state</span> online <span class="nt">-junction-path</span> /new_app_config
+</code></pre></div></div>
+
+<h5 id="2-montaje-nfs-en-los-hosts">2. Montaje NFS en los hosts</h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>mount 192.168.0.132:/new_app_vol /mnt/new_app_vol
+<span class="nv">$ </span>mount 192.168.0.132:/new_app_vol /mnt/new_app_config
+</code></pre></div></div>
+
+<h5 id="3-ejecutar-minio-como-contenedor">3. Ejecutar minio como contenedor</h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker run <span class="nt">-p</span> 9000:9000 <span class="nt">--name</span> minio1 <span class="nt">-e</span> <span class="s2">"MINIO_ACCESS_KEY=MYS3ACCESSKEY"</span> <span class="nt">-e</span> <span class="s2">"MINIO_SECRET_KEY=MYS3SECRETKEY"</span> <span class="nt">-v</span> /mnt/new_app_vol:/data <span class="nt">-v</span> /mnt/new_app_config:/root/.miniominio/minio server /data
+</code></pre></div></div>
+
+<h3 id="configuración-con-nuevos-volumenes">Configuración con nuevos volumenes</h3>
+
+<p>Si se desea crear un nuevo volumen para el servicio de almacenamiento de objetos S3 y después volcar la información por otros métodos, el despliegue de los volúmenes se puede delegar totalmente al equipo de desarrollo a través del plugin de docker. Se pueden ver los detalles de cómo configurar <a href="/2017/12/26/Mi-primer-volume-plugin-de-docker-con-ontap.html">Mi primer volume plugin de docker con ONTAP</a>.</p>
+
+<h5 id="1-creación-de-volúmenes">1. Creación de volúmenes</h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker volume create <span class="nt">-d</span> netapp <span class="nt">--name</span> my_data <span class="nt">-o</span> <span class="nv">size</span><span class="o">=</span>100g
+<span class="nv">$ </span>docker volume create <span class="nt">-d</span> netapp <span class="nt">--name</span> my_config <span class="nt">-o</span> <span class="nv">size</span><span class="o">=</span>5g
+</code></pre></div></div>
+
+<h5 id="2-ejecutar-minio-como-contenedor">2. Ejecutar minio como contenedor</h5>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker run <span class="nt">-p</span> 9000:9000 <span class="nt">--name</span> minio1 <span class="nt">-e</span> <span class="s2">"MINIO_ACCESS_KEY=MYS3ACCESSKEY"</span> <span class="nt">-e</span> <span class="s2">"MINIO_SECRET_KEY=MYS3SECRETKEY"</span> <span class="nt">-v</span> my_data:/data <span class="nt">-v</span> my_config:/root/.minio minio/minio server /data
+</code></pre></div></div>
+
+<h3 id="ejemplo-de-acceso">Ejemplo de acceso</h3>
+
+<p>Para probar el acceso al almacenamiento de objetos S3 se ha instalado el software <a href="https://aws.amazon.com/cli/">AWS cli</a> en un equipo Windows y también se ha montado por NFS el volumen de datos en un equipo Linux. Puesto que con esta forma de operar Minio trabaja con el sistema de ficheros que tenga el host, se puede comprobar las lecturas y escrituras de ficheros por NFS y de objetos por S3 al repositorio creado.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">mkdir</span> /mnt/minio
+<span class="nv">$ </span>mount 192.168.0.132:/netappdvp_my_data /mnt/minio/
+</code></pre></div></div>
+
+<p>Desde el equipo Windows se configura el cliente AWS y se verifica el acceso sobre el host1 que efectivamente está vacío.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">configure</span><span class="w">
+</span><span class="nf">AWS</span><span class="w"> </span><span class="nx">Access</span><span class="w"> </span><span class="nx">Key</span><span class="w"> </span><span class="nx">ID</span><span class="w"> </span><span class="p">[</span><span class="o">****************</span><span class="p">]:</span><span class="w"> </span><span class="nx">MYS3ACCESSKEY</span><span class="w">
+</span><span class="nf">AWS</span><span class="w"> </span><span class="nx">Secret</span><span class="w"> </span><span class="nx">Access</span><span class="w"> </span><span class="nx">Key</span><span class="w"> </span><span class="p">[</span><span class="o">****************</span><span class="p">]:</span><span class="w"> </span><span class="nx">MYS3SECRETKEY</span><span class="w">
+</span><span class="nf">Default</span><span class="w"> </span><span class="nx">region</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="p">[</span><span class="kt">None</span><span class="p">]:</span><span class="w">
+</span><span class="nf">Default</span><span class="w"> </span><span class="nx">output</span><span class="w"> </span><span class="nx">format</span><span class="w"> </span><span class="p">[</span><span class="kt">None</span><span class="p">]:</span><span class="w">
+
+</span><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">s3</span><span class="w"> </span><span class="nx">ls</span><span class="w"> </span><span class="nt">--endpoint-url</span><span class="w"> </span><span class="nx">http://host1.mydomain.local:9000</span><span class="w">
+
+</span></code></pre></div></div>
+
+<p>Se crea un bucket desde el host1 y se verifica sobre el host2 que se ha creado correctamente.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">s3</span><span class="w"> </span><span class="nx">mb</span><span class="w"> </span><span class="nx">s3://new-bucket</span><span class="w"> </span><span class="nt">--endpoint-url</span><span class="w"> </span><span class="nx">http://host1.mydomain.local:9000</span><span class="w">
+</span><span class="nf">make_bucket:</span><span class="w"> </span><span class="nx">new-bucket</span><span class="w">
+
+</span><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">s3</span><span class="w"> </span><span class="nx">ls</span><span class="w"> </span><span class="nt">--endpoint-url</span><span class="w"> </span><span class="nx">http://host2.mydomain.local:9000</span><span class="w">
+</span><span class="mi">2017</span><span class="nt">-12-28</span><span class="w"> </span><span class="mi">19</span><span class="p">:</span><span class="mi">09</span><span class="p">:</span><span class="mi">43</span><span class="w"> </span><span class="nf">new-bucket</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Se sube un fichero sobre el host1 como objeto.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">s3</span><span class="w"> </span><span class="nx">cp</span><span class="w"> </span><span class="o">.</span><span class="nx">/Downloads/myFile.txt</span><span class="w"> </span><span class="nx">s3://new-bucket--endpoint-url</span><span class="w"> </span><span class="nx">http://host1.mydomain.local:9000</span><span class="w">
+</span><span class="nf">upload:</span><span class="w"> </span><span class="nx">Downloads\myFile.txt</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">s3://new-bucket/myFile.txt</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Se verifica desde el NFS montado que el fichero está en el directorio del nuevo bucket.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">ls</span> <span class="nt">-altr</span> /mnt/minio/new-bucket/
+total 8
+drwxrwxrwx 5 root root 4096 Dec 28 19:09 ..
+<span class="nt">-rw-r--r--</span> 1 root root    0 Dec 28 19:12 myFile.txt
+drwxr-xr-x 2 root root 4096 Dec 28 19:12 <span class="nb">.</span>
+</code></pre></div></div>
+
+<p>Se escribe un nuevo fichero desde el NFS montado.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="err">$</span><span class="w"> </span><span class="nf">echo</span><span class="w"> </span><span class="s1">'blablabla'</span><span class="w"> </span><span class="err">&gt;</span><span class="w"> </span><span class="nx">/mnt/minio/new-bucket/myOtherFile.txt</span><span class="w">
+</span><span class="err">$</span><span class="w"> </span><span class="nf">ls</span><span class="w"> </span><span class="nt">-altr</span><span class="w">
+</span><span class="nf">total</span><span class="w"> </span><span class="nx">8</span><span class="w">
+</span><span class="nf">drwxrwxrwx</span><span class="w"> </span><span class="nx">5</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">4096</span><span class="w"> </span><span class="nx">Dec</span><span class="w"> </span><span class="nx">28</span><span class="w"> </span><span class="nx">19:09</span><span class="w"> </span><span class="o">..</span><span class="w">
+</span><span class="nt">-rw-r--r</span><span class="nf">--</span><span class="w"> </span><span class="nx">1</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">root</span><span class="w">    </span><span class="nx">0</span><span class="w"> </span><span class="nx">Dec</span><span class="w"> </span><span class="nx">28</span><span class="w"> </span><span class="nx">19:12</span><span class="w"> </span><span class="nx">myFile.txt</span><span class="w">
+</span><span class="nf">drwxr-xr-x</span><span class="w"> </span><span class="nx">2</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">4096</span><span class="w"> </span><span class="nx">Dec</span><span class="w"> </span><span class="nx">28</span><span class="w"> </span><span class="nx">19:16</span><span class="w"> </span><span class="o">.</span><span class="w">
+</span><span class="nt">-rw-r--r</span><span class="nf">--</span><span class="w"> </span><span class="nx">1</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="nx">root</span><span class="w">   </span><span class="nx">10</span><span class="w"> </span><span class="nx">Dec</span><span class="w"> </span><span class="nx">28</span><span class="w"> </span><span class="nx">19:16</span><span class="w"> </span><span class="nx">myOtherFile.txt</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Y se verifica el acceso desde el host1 y host2.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">s3</span><span class="w"> </span><span class="nx">ls</span><span class="w"> </span><span class="nx">s3://new-bucket</span><span class="w"> </span><span class="nt">--endpoint-url</span><span class="w"> </span><span class="nx">http://host1.mydomain.local:9000</span><span class="w">
+</span><span class="mi">2017</span><span class="nt">-12-28</span><span class="w"> </span><span class="mi">19</span><span class="p">:</span><span class="mi">12</span><span class="p">:</span><span class="mi">43</span><span class="w">          </span><span class="mi">0</span><span class="w"> </span><span class="nf">myFile.txt</span><span class="w">
+</span><span class="mi">2017</span><span class="nt">-12-28</span><span class="w"> </span><span class="mi">19</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="mi">13</span><span class="w">         </span><span class="mi">10</span><span class="w"> </span><span class="nf">myOtherFile.txt</span><span class="w">
+
+</span><span class="nf">C:\</span><span class="err">&gt;</span><span class="nx">aws</span><span class="w"> </span><span class="nx">s3</span><span class="w"> </span><span class="nx">ls</span><span class="w"> </span><span class="nx">s3://new-bucket</span><span class="w"> </span><span class="nt">--endpoint-url</span><span class="w"> </span><span class="nx">http://host2.mydomain.local:9000</span><span class="w">
+</span><span class="mi">2017</span><span class="nt">-12-28</span><span class="w"> </span><span class="mi">19</span><span class="p">:</span><span class="mi">12</span><span class="p">:</span><span class="mi">43</span><span class="w">          </span><span class="mi">0</span><span class="w"> </span><span class="nf">myFile.txt</span><span class="w">
+</span><span class="mi">2017</span><span class="nt">-12-28</span><span class="w"> </span><span class="mi">19</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="mi">13</span><span class="w">         </span><span class="mi">10</span><span class="w"> </span><span class="nf">myOtherFile.txt</span><span class="w">
+</span></code></pre></div></div>
+:ET

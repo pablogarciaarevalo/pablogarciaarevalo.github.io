@@ -1,0 +1,65 @@
+I"�<p><a href="https://github.com/s3fs-fuse/s3fs-fuse">S3FS</a> es un cliente open-source gratuito por l챠nea de comandos que permite montar un bucket <a href="https://aws.amazon.com/documentation/s3/">S3</a> como si se tratase de un sistema de ficheros, preservando el formato nativo de los objetos al igual que lo hace la herramienta <a href="/2018/01/22/Configuracion-de-s3cmd-con-StorageGRID.html">S3CMD</a>.</p>
+
+<h3 id="instalaci처n">Instalaci처n</h3>
+
+<p>En la documentaci처n oficial de S3FS se dispone de los pasos necesarios para la instalaci처n de diferentes sistemas operativos. A acontinuaci처n se muestran los pasos para un sistema CentOS 7.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>yum <span class="nb">install </span>automake fuse fuse-devel gcc-c++ git libcurl-devel libxml2-devel make openssl-devel
+
+git clone https://github.com/s3fs-fuse/s3fs-fuse.git
+<span class="nb">cd </span>s3fs-fuse
+./autogen.sh
+./configure
+make
+<span class="nb">sudo </span>make <span class="nb">install</span>
+</code></pre></div></div>
+
+<h3 id="configuraci처n">Configuraci처n</h3>
+
+<p>Una vez instalado hay que almacenar las claves S3 en un fichero de credenciales.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">echo </span>MYS3ACCESSKEY:MYS3SECRETKEY <span class="o">&gt;</span>  ~/.passwd-s3fs
+<span class="nb">chmod </span>600  ~/.passwd-s3fs
+</code></pre></div></div>
+
+<p>Y crear un punto de montaje donde montar el bucket S3.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> /mnt/s3fs
+</code></pre></div></div>
+
+<h3 id="ejemplo">Ejemplo</h3>
+
+<p>Tras ello hay que montar el bucket S3 sobre el punto de montaje deseado utilizando el software S3FS.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>s3fs s3fs-bucket /mnt/s3fs <span class="se">\</span>
+<span class="nt">-o</span> <span class="nv">passwd_file</span><span class="o">=</span>~/.passwd-s3fs <span class="se">\</span>
+<span class="nt">-o</span> <span class="nv">url</span><span class="o">=</span>https://my_gateway_storagegrid.mydomain.com:8082 <span class="se">\</span>
+<span class="nt">-o</span> sigv2  <span class="nt">-o</span> no_check_certificate <span class="se">\</span>
+<span class="nt">-o</span> use_path_request_style
+</code></pre></div></div>
+
+<p>Tras copiar varios ficheros al directorio, se pueden listar estos ficheros de forma habitual.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@Linux1 ~]# <span class="nb">cd</span> /mnt/s3fs/
+<span class="o">[</span>root@Linux1 s3fs]# <span class="nb">ls</span> <span class="nt">-al</span>
+total 219
+drwx------. 1 root root      0 Dec 31  1969 <span class="nb">.</span>
+drwxr-xr-x. 4 root root     28 Oct  3 01:29 ..
+<span class="nt">-rw-------</span><span class="nb">.</span> 1 root root   1044 Oct  3 02:20 anaconda-ks.cfg
+<span class="nt">-rwxr-xr-x</span><span class="nb">.</span> 1 root root 221483 Oct  3 02:20 configure
+<span class="nt">-rw-r--r--</span><span class="nb">.</span> 1 root root     10 Oct  3 01:39 file1.txt
+</code></pre></div></div>
+
+<p>Y nos podemos conectar con el cliente nativo de AWS S3 y listar el contenido del bucket para verificar la consistencia de los ficheros guardados.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@Linux1]# <span class="nb">cat</span> ~/.aws/credentials
+<span class="o">[</span>storagegrid]
+aws_access_key_id <span class="o">=</span> MYS3ACCESSKEY
+aws_secret_access_key <span class="o">=</span> MYS3SECRETKEY
+
+aws s3 <span class="nb">ls </span>s3://s3fs-bucket/ <span class="nt">--profile</span> storagegrid <span class="nt">--endpoint-url</span>  https://my_gateway_storagegrid.mydomain.com:8082 <span class="nt">--no-verify-ssl</span>
+2018-10-03 02:20   1044 s3://s3fs-bucket/anaconda-ks.cfg
+2018-10-03 02:20 221483 s3://s3fs-bucket/configure
+2018-10-03 01:39     10 s3://s3fs-bucket/file1.txt
+</code></pre></div></div>
+:ET

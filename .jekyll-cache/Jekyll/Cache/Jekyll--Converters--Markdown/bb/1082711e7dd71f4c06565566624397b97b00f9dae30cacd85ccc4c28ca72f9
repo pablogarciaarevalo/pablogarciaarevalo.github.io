@@ -1,0 +1,117 @@
+I"�$<p><a href="https://github.com/NetApp/trident">Trident</a> es un proyecto de código abierto totalmente mantenido por NetApp. Ha sido diseñado desde cero para ayudar a solucionar los requerimientos de persistencia de las aplicaciones en contenedores.</p>
+
+<p>Después de haber <a href="/2019/04/05/Instalar-kubernetes-con-kubeadm.html">Instalado kubernetes con kubeadm</a> se hará la instalación de Trident, el cual se despliega como un pod dentro del propio clúster de kubernetes. Este pod se aprovisiona como un deployment de Kubernetes, el cual está compuesto por dos contenedores, un contenedor etcd para almacenar los datos de los volúmenes persistentes y otro contenedor con el trident-main. El contenedor etcd utiliza un volumen persistente para almacenar los datos.</p>
+
+<h3 id="requisitos">Requisitos</h3>
+
+<p>Para que la instalación se lleve a cabo satisfactoriamente, es necesario poder montar el volumen persistente para el contenedor etcd durante el proceso de instalación. Para ello es necesario instalar los componentes NFS e iSCSI en los nodos del clúster de kubernetes. También se conecta los iniciadores iSCSI contra la dirección IP iSCSI del SVM de la cabina.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum <span class="nb">install </span>nfs-utils <span class="nt">-y</span>
+yum <span class="nb">install</span> <span class="nt">-y</span> iscsi-initiator-utils
+iscsiadm <span class="nt">--mode</span> discovery <span class="nt">--op</span> update <span class="nt">--type</span> sendtargets <span class="nt">--portal</span> 192.168.0.202
+iscsiadm <span class="nt">--mode</span> node <span class="nt">-l</span> all
+iscsiadm <span class="nt">--mode</span> session
+</code></pre></div></div>
+
+<p>También se crea un namaspace en kubernetes.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl create namespace trident
+</code></pre></div></div>
+
+<h3 id="instalación">Instalación</h3>
+
+<p>Inicialmente se descarga el paquete de Trident, en este caso la versión 19.01.0, y se descomprime.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://github.com/NetApp/trident/releases/download/v19.01.0/trident-installer-19.01.0.tar.gz
+
+<span class="nb">tar</span> <span class="nt">-xf</span> trident-installer-19.01.0.tar.gz
+</code></pre></div></div>
+
+<p>En la carpeta ‘sample-imput’ se encuentran varios ficheros de ejemplos para backends, storage classes y persistent volumes claim. Para facilitar la instalación se copia un fichero de ejemplo de backend a la carpeta ‘setup’, y se edita con la información del entorno. En este caso se ha utilizado una Storage Virtual Machine de acceso NAS para este primer volumen persistente.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cp </span>sample-input/backend-ontap-nas.json setup/backend.json
+
+<span class="nb">cat </span>setup/backend.json
+<span class="o">{</span>
+    <span class="s2">"version"</span>: 1,
+    <span class="s2">"storageDriverName"</span>: <span class="s2">"ontap-nas"</span>,
+    <span class="s2">"backendName"</span>: <span class="s2">"ONTAP NAS"</span>,
+    <span class="s2">"managementLIF"</span>: <span class="s2">"192.168.0.200"</span>,
+    <span class="s2">"dataLIF"</span>: <span class="s2">"192.168.0.201"</span>,
+    <span class="s2">"svm"</span>: <span class="s2">"kubernetes"</span>,
+    <span class="s2">"username"</span>: <span class="s2">"vsadmin"</span>,
+    <span class="s2">"password"</span>: <span class="s2">"password"</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Se ejecuta el programa de instalación.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+./tridentctl <span class="nb">install</span> <span class="nt">-n</span> trident
+INFO Created installer service account.            <span class="nv">serviceaccount</span><span class="o">=</span>trident-installer
+INFO Waiting <span class="k">for </span>object to be created.             <span class="nv">objectName</span><span class="o">=</span>clusterRole
+INFO Created installer cluster role.               <span class="nv">clusterrole</span><span class="o">=</span>trident-installer
+INFO Waiting <span class="k">for </span>object to be created.             <span class="nv">objectName</span><span class="o">=</span>clusterRoleBinding
+INFO Created installer cluster role binding.       <span class="nv">clusterrolebinding</span><span class="o">=</span>trident-installer
+INFO Created installer configmap.                  <span class="nv">configmap</span><span class="o">=</span>trident-installer
+INFO Waiting <span class="k">for </span>object to be created.             <span class="nv">objectName</span><span class="o">=</span>installerPod
+INFO Created installer pod.                        <span class="nv">pod</span><span class="o">=</span>trident-installer
+INFO Waiting <span class="k">for </span>Trident installer pod to start.
+INFO Trident installer pod started.                <span class="nv">namespace</span><span class="o">=</span>trident <span class="nv">pod</span><span class="o">=</span>trident-installer
+INFO Starting Trident installation.                <span class="nv">namespace</span><span class="o">=</span>trident
+INFO Created service account.
+INFO Created cluster role.
+INFO Created cluster role binding.
+INFO Created Trident deployment.
+INFO Waiting <span class="k">for </span>Trident pod to start.
+INFO Trident pod started.                          <span class="nv">namespace</span><span class="o">=</span>trident <span class="nv">pod</span><span class="o">=</span>trident-764d46d5d8-dhnll
+INFO Waiting <span class="k">for </span>Trident REST interface.
+INFO Trident REST interface is up.                 <span class="nv">version</span><span class="o">=</span>19.01.0
+INFO Trident installation succeeded.
+INFO Waiting <span class="k">for </span>Trident installer pod to finish.
+INFO Trident installer pod finished.               <span class="nv">namespace</span><span class="o">=</span>trident <span class="nv">pod</span><span class="o">=</span>trident-installer
+INFO Deleted installer pod.                        <span class="nv">pod</span><span class="o">=</span>trident-installer
+INFO Deleted installer configmap.                  <span class="nv">configmap</span><span class="o">=</span>trident-installer
+INFO In-cluster installation completed.
+INFO Deleted installer cluster role binding.
+INFO Deleted installer cluster role.
+INFO Deleted installer service account.
+</code></pre></div></div>
+
+<p>Después de que la instalación haya finalizado satisfactoriamente, se puede verificar la versión de Trident instalada.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./tridentctl version <span class="nt">-n</span> trident
++----------------+----------------+
+| SERVER VERSION | CLIENT VERSION |
++----------------+----------------+
+| 19.01.0        | 19.01.0        |
++----------------+----------------+
+</code></pre></div></div>
+
+<p>En el sistema de almacenamiento ONTAP se ha aprovisionado automáticamente el volumen para el contenedor etcd.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ontap::&gt; volume show <span class="nt">-vserver</span> kubernetes
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+<span class="nt">---------</span> <span class="nt">------------</span> <span class="nt">------------</span> <span class="nt">----------</span> <span class="nt">----</span> <span class="nt">----------</span> <span class="nt">----------</span> <span class="nt">-----</span>
+kubernetes trident_trident aggr_n3_DL_Data online RW       2GB     2.00GB    0%
+</code></pre></div></div>
+
+<p>Trident se ha instalado como un deployment de kubernetes, y se puede inspeccionar el pod para ver los detalles.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get deployment <span class="nt">-n</span> trident
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+trident   1/1     1            1           5d22h
+
+kubectl get pod <span class="nt">-n</span> trident
+NAME                       READY   STATUS    RESTARTS   AGE
+trident-764d46d5d8-dhnll   2/2     Running   0          2m19s
+</code></pre></div></div>
+
+<p>En uno de los nodos de kubernetes se puede encontrar los dos contenedores y acceder a ellos.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker ps
+CONTAINER ID        IMAGE                   COMMAND                  CREATED             STATUS              PORTS               NAMES
+e76d386fca73        643c21638c1c            <span class="s2">"/usr/local/bin/etcd…"</span>   5 days ago          Up 5 days                               k8s_etcd_trident-764d46d5d8-dhnll_trident_f551eabd-56fe-11e9-a678-0050569654ca_0
+e047298c8a87        1a74b69a7a5d            <span class="s2">"/usr/local/bin/trid…"</span>   5 days ago          Up 5 days                               k8s_trident-main_trident-764d46d5d8-dhnll_trident_f551eabd-56fe-11e9-a678-0050569654ca_0
+</code></pre></div></div>
+:ET

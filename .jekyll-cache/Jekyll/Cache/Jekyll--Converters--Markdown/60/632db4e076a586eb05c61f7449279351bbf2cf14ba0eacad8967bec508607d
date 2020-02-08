@@ -1,0 +1,60 @@
+I"�<p>Office 365 de Microsoft es uno de los servicios Cloud en modalidad SaaS mas utilizados. Si bien este tipo de modalidad cloud SaaS proporcionan a las empresas muchas ventajas respecto a las aplicaciones tradicionales, la eliminación de las políticas de backup de sus datos no es una de ellas. Esten los datos en una infraestructura on-premises o Cloud pública en cualquiera de sus modalidades, es responsabilidad de las empresas la protección e integridad de los datos. Tal y como explica la <a href="https://products.office.com/en-us/business/office-365-online-data-portability">web de Microsoft</a>:</p>
+
+<p><strong>“It’s your data. You own your data and retain all rights, title, and interest in the data your store with Office 365.”</strong></p>
+
+<p><a href="https://cloud.netapp.com/cloud-control">Cloud Control</a> de NetApp es el servicio que permite proteger los servicios Cloud SaaS de amenazas o borrados accidentales. Permite proteger los servicios Outlook, OneDrive y SharePoint de Microsoft Office 365 hacia un almacenamiento de objetos en cloud público como Amazon S3 o Azure, y Cloud privado como <a href="https://www.netapp.com/us/products/data-management-software/object-storage-grid-sds.aspx">StorageGRID</a></p>
+
+<h3 id="requisitos">Requisitos</h3>
+
+<p>En el caso de querer proteger los servicios de Office 365 sobre el almacenamiento de StorageGRID, son necesarios los siguientes requisitos:</p>
+
+<ul>
+  <li>El acceso al almacenamiento de StorageGRID tiene que estar disponible a través de Internet.</li>
+  <li>El acceso a StorageGRID necesita de un nombre de dominio con un certificado, en el caso del ejemplo sgws.mydomain.com</li>
+  <li>TLS 1.2</li>
+  <li>Puerto 8082 abierto y redireccionado</li>
+  <li>Un bucket ya creado, en el caso del ejemplo cc-pablogarciaarevalo</li>
+</ul>
+
+<p>Si bien no es un requisito, una buena práctica es toda plataforma de backup es la utilización de un usuario específico. En este ejemplo se ha utilizado el usuario cloudcontrol del dominio garciaarevalo.onmicrosoft.com</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-001.png" alt="" /></p>
+
+<h3 id="configuración">Configuración</h3>
+
+<p>Para realizar la configuración, simplemente hay que acceder a la web <a href="https://cloud.netapp.com/cloud-control">https://cloud.netapp.com/cloud-control</a> y darse de alta ‘Sign Up’.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-002.png" alt="" /></p>
+
+<p>Tras completar la información requerida, se nos devuelve a la dirección de correo las credenciales necesarias. Con ellas ya es posible acceder.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-003.png" alt="" /></p>
+
+<p>Se aceptan los permisos necesarios para la protección y recuperación del servicio.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-004.png" alt="" /></p>
+
+<p>Se continua con el Wizard de configuración.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-005.png" alt="" /></p>
+
+<p>Se seleccionan los servicios que se quieren proteger.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-006.png" alt="" /></p>
+
+<p>Se selecciona la licencia. Es posible comenzar con una licencia de pruebas y después actualizar a la licencia definitiva.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-007.png" alt="" /></p>
+
+<p>Se configura el almacenamiento destino del backup. En el caso del ejemplo se configurará contra un almacenamiento On-premises para proteger los datos del cloud público en una infraestructura propia.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-008.png" alt="" /></p>
+
+<p>Se verifica y se guarda la configuración.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-009.png" alt="" /></p>
+
+<p>A continuación se puede ver un ejemplo de la sencillez del entorno, donde se observan los servicios protegidos y los que no lo están, y el estado de las últimas tareas.</p>
+
+<p><img src="/assets/img/Configuracion-de-Cloud-Control-con-Office-365-y-StorageGRID-010.png" alt="" /></p>
+:ET

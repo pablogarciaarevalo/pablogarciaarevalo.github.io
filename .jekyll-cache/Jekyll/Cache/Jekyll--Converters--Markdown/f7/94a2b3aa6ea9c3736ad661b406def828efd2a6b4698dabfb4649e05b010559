@@ -1,0 +1,166 @@
+I"(<p>Uno de los varios casos de uso de Cloud Volumes ONTAP es la posibilidad de disponer en una nube pública del mismo sistema de almacenamiento ONTAP que se tiene on-premises. Utilizando para recuperación ante desastres permite reducir costes al poder tenerse el sistema de almacenamiento en la nube pública encendido unicamente durante el tiempo que se ejecuta diariamente la replicación.</p>
+
+<p>La arquitectura compuesta por contenedores y ONTAP permite desacoplar la capa de la aplicación y la de los datos permitiendo separar el ciclo de vida de ambos.</p>
+
+<h3 id="ejecutándo-un-servidor-web-con-almacenamiento-persistente-sobre-un-volumen-de-ontap">Ejecutándo un servidor web con almacenamiento persistente sobre un volumen de ONTAP</h3>
+
+<p>En este ejemplo sencillo se dispone en una cabina ONTAP on-premises de un volumen donde se almacenará, a través de NFS, el contenido de un servicio web.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>clusterlab::&gt; volume show  <span class="nt">-volume</span> vol_website
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+<span class="nt">---------</span> <span class="nt">------------</span> <span class="nt">------------</span> <span class="nt">----------</span> <span class="nt">----</span> <span class="nt">----------</span> <span class="nt">----------</span> <span class="nt">-----</span>
+capacity_server vol_website aggr_n4_DL_Data online RW      1GB    972.6MB    5%
+</code></pre></div></div>
+
+<p>Desde el servidor Linux se monta el punto de montaje y se crea contenido simple html.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@docker]# <span class="nb">mkdir</span> <span class="nt">-p</span> /mnt/mi_website
+<span class="o">[</span>root@docker]# mount <span class="nt">-t</span> nfs 10.67.216.20:/vol_website /mnt/mi_website/
+
+<span class="o">[</span>root@vm-docker2 mi_website]# vi /mnt/mi_website/index.html
+&lt;html&gt;
+&lt;body&gt;
+Hola <span class="o">!!!</span> Esta es mi website
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+
+<p>Se levanta el servicio web a través de un contenedor apache redirigiendo la carpeta de contenido web al volumen persistente que reside sonre ONTAP.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@docker]# docker run <span class="nt">-dit</span> <span class="nt">--name</span> mi_website <span class="nt">-p</span> 8080:80 <span class="nt">-v</span> /mnt/mi_website/:/usr/local/apache2/htdocs/ httpd
+
+Unable to find image <span class="s1">'httpd:latest'</span> locally
+latest: Pulling from library/httpd
+6ae821421a7d: Pull <span class="nb">complete
+</span>0ceda4df88c8: Pull <span class="nb">complete
+</span>24f08eb4db68: Pull <span class="nb">complete
+</span>c3c78f43bd0f: Pull <span class="nb">complete
+</span>bd71aacd8d1e: Pull <span class="nb">complete
+</span>Digest: sha256:d12c036427f436978f2d4397ad2bd6b5b8f7b03003b7a1da084eb228ef25b7d2
+Status: Downloaded newer image <span class="k">for </span>httpd:latest
+a4d54577c05abfd9d8c5e3bfb2a1339598f3079295b264e901293f679eb7578d
+</code></pre></div></div>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@docker]# docker ps
+CONTAINER ID        IMAGE               COMMAND              CREATED             STATUS              PORTS                  NAMES
+a4d54577c05a        httpd               <span class="s2">"httpd-foreground"</span>   10 seconds ago      Up 9 seconds        0.0.0.0:8080-&gt;80/tcp   mi_website
+</code></pre></div></div>
+
+<p>Puede comprobarse como se puede acceder al contenido web desde el puerto apropiado.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-001.png" alt="" /></p>
+
+<h3 id="replicando-los-datos-del-servicio-web">Replicando los datos del servicio web</h3>
+
+<p>Al haber desacoplado el aplicativo de los datos con el uso de docker, simplemente se ha de replicar los datos hacia otro sistema. Tras haber <a href="/2019/01/29/Desplegando-AWS-Cloud-Volumes-ONTAP.html">Desplegado AWS Cloud Volumes ONTAP</a>, se utilizará este sistema aprovechando la replicación eficiente de ONTAP llamada SnapMirror.</p>
+
+<p>Accediendo a OnCommand Cloud Manager se ha de añadir el sistema ONTAP on-premises. Para ello habrá sido necesario previamente establecer la conexión via VPN o Direct Connect entre la red física y el VPC de AWS.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-002.png" alt="" /></p>
+
+<p>Se selecciona un sistema ONTAP físico</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-003.png" alt="" /></p>
+
+<p>Se define la dirección IP de gestión del clúster y las credenciales de acceso.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-004.png" alt="" /></p>
+
+<p>OnCommand Cloud Manager descubre y cataloga el sistema de almacenamiento ONTAP físico.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-005.png" alt="" /></p>
+
+<p>Para replicar contenido de una nube privada a una nube pública, simplemente se tiene que arrastrar una nube sobre otra.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-006.png" alt="" /></p>
+
+<p>A partir de aquí completa la información necesaria en forma de asistente. A continuación se establecen las direcciones IPs, LIFs, de réplica a utilizar.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-007.png" alt="" /></p>
+
+<p>Se selecciona el volumen o volumenes que se quiere replicar.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-008.png" alt="" /></p>
+
+<p>El tipo de disco donde se va a almacenar el volumen replicado.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-009.png" alt="" /></p>
+
+<p>El límite de transferencia de la réplica.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-010.png" alt="" /></p>
+
+<p>La política de replicación.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-011.png" alt="" /></p>
+
+<p>La programación de la replicación.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-012.png" alt="" /></p>
+
+<p>Se revisa la configuración y se acepta.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-013.png" alt="" /></p>
+
+<p>Una vez que termina la replica se tendrán los datos de la nube privada y la nube pública sincronizados.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-014.png" alt="" /></p>
+
+<p>Se podrán ver los detalles de los datos replicados.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-015.png" alt="" /></p>
+
+<h3 id="replicando-el-aplicativo-del-servicio-web">Replicando el aplicativo del servicio web</h3>
+
+<p>Para poder prestar el servicio en AWS hay que juntar el aplicativo y los datos. Una vez que los datos están replicados, con la tecnología de docker es muy sencillo replicar el aplicativo. Para ello se despliega una instancia Linux desde una AMI de AWS.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-016.png" alt="" /></p>
+
+<p>Una vez está disponible se verifica el Security Group</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-017.png" alt="" /></p>
+
+<p>Y se permite acceso a los puertos necesarios del aplicativo, en este ejemplo el servicio web y ssh para la gestión.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-018.png" alt="" /></p>
+
+<h3 id="ejecutándo-el-servicio-replicado-en-aws">Ejecutándo el servicio replicado en AWS</h3>
+
+<p>Tras comprobar los NFS export policy de Cloud Volumes ONTAP, conectándose a la instancia Linux de AWS se monta el volumen replicado y se lista el contenido de la aplicación.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@ip-172-30-14-247 ~]# <span class="nb">mkdir</span> <span class="nt">-p</span> /mnt/mi_website
+<span class="c"># Hay que crear/modificar los export policy</span>
+<span class="o">[</span>root@ip-172-30-14-247 ~]# mount <span class="nt">-t</span> nfs 172.30.14.246:/vol_website /mnt/mi_website/
+<span class="o">[</span>root@ip-172-30-14-247 ~]# <span class="nb">cat</span> /mnt/mi_website/index.html
+&lt;html&gt;
+&lt;body&gt;
+Hola <span class="o">!!!</span> Esta es mi mi_website
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+
+<p>De igual forma, con el mismo comando, que se instancian los contenedores web on-premises, se instancian el contenedor web en AWS</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>root@ip-172-30-14-247 ~]# docker run <span class="nt">-dit</span> <span class="nt">--name</span> mi_website <span class="nt">-p</span> 8080:80 <span class="nt">-v</span> /mnt/mi_website/:/usr/local/apache2/htdocs/ httpd
+Unable to find image <span class="s1">'httpd:latest'</span> locally
+latest: Pulling from library/httpd
+6ae821421a7d: Pull <span class="nb">complete
+</span>0ceda4df88c8: Pull <span class="nb">complete
+</span>24f08eb4db68: Pull <span class="nb">complete
+</span>c3c78f43bd0f: Pull <span class="nb">complete
+</span>bd71aacd8d1e: Pull <span class="nb">complete
+</span>Digest: sha256:d12c036427f436978f2d4397ad2bd6b5b8f7b03003b7a1da084eb228ef25b7d2
+Status: Downloaded newer image <span class="k">for </span>httpd:latest
+5bcda071f7773f68865fb6a703af5490e3b8504ec6ba4a045aa4f60f57b25417
+
+
+<span class="o">[</span>root@ip-172-30-14-247 ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND              CREATED             STATUS              PORTS                  NAMES
+5bcda071f777        httpd               <span class="s2">"httpd-foreground"</span>   15 seconds ago      Up 14 seconds       0.0.0.0:8080-&gt;80/tcp   mi_website
+</code></pre></div></div>
+
+<p>Esto permite visualizar el mismo servicio con los mismos datos de forma eficiente.</p>
+
+<p><img src="/assets/img/ONTAP-as-a-DR-para-servidor-web-en-docker-019.png" alt="" /></p>
+
+:ET

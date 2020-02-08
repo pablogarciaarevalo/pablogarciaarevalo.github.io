@@ -1,0 +1,17 @@
+I"<p>Este es la web personal que utilizo como repositorio donde guardar y anotar información sobre las tecnologías que me gustan, con las que trabajo y sobre las que intento aprender, como el almacenamiento de datos, virtualización, cloud, automatización y programación. También lo comparto por si a alguien le es de utilidad.</p>
+
+<p>Puedes contactarme a través de <data data-icon="ei-sc-linkedin"></data> <a href="https://www.linkedin.com/in/PabloGarciaArevalo/">LinkedIn</a> <data data-icon="ei-sc-github"></data> <a href="https://github.com/pablogarciaarevalo">Github</a> <data data-icon="ei-sc-twitter"></data> <a href="https://twitter.com/P_GarciaArevalo">Twitter</a></p>
+
+<footer class="article-footer" mar="">
+    <section class="author">
+  <div class="authorimage box" style="background: url(/assets/img/Pablo.jpeg)"></div>
+  <div class="authorinfo box">
+    <p>Author | Pablo Garcia Arevalo</p>
+    <p class="bio">
+      Ingeniero Técnico en Informática de Gestión
+    </p>
+  </div>
+</section>
+
+  </footer>
+:ET

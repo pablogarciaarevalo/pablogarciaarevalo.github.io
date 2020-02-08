@@ -1,0 +1,92 @@
+I"$#<p>De igual forma que se ha detallado el procedimiento para poder ejecutar <a href="/2017/12/17/Mi-primer-playbook-de-ansible-con-ontap.html">Mi primer PlayBook de Ansible con ONTAP</a>, en este caso se realizará lo mismo para las cabinas de almacenamiento de NetApp <a href="https://www.netapp.com/us/products/storage-systems/all-flash-array/solidfire-web-scale.aspx">SolidFire</a>.</p>
+
+<p>Los detalles de los módulos están en este <a href="http://docs.ansible.com/ansible/latest/list_of_storage_modules.html#netapp">enlace</a> que proporcionan toda la información de los input necesarios para ejecutar cada módulo.</p>
+
+<h3 id="instalación">Instalación</h3>
+
+<p>En el caso de las cabinas SolidFire, los requisitos necesarios para trabajar con Ansible son:</p>
+<ul>
+  <li>Ansible 2.3</li>
+  <li>Paquete solidfire-sdk-python</li>
+</ul>
+
+<p>Para instalar el paquete necesario simplemente hay que ejecutar el siguiente comando:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pip <span class="nb">install </span>solidfire-sdk-python
+</code></pre></div></div>
+
+<h3 id="ejemplo">Ejemplo</h3>
+
+<p>El siguiente código YAML muestra el ejemplo básico para la creación un volumen sobra una cabina SolidFire. El código está actualizado en el repositorio de <a href="https://github.com/pablogarciaarevalo/ansible_playbooks/blob/master/example_netapp_solidfire.yml">GitHub</a>:</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">---</span>
+<span class="c1"># This playbook deploys a NetApp volume on SolidFire</span>
+
+<span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">example netapp solidfire</span>
+  <span class="na">hosts</span><span class="pi">:</span> <span class="s">localhost</span>
+  <span class="na">gather_facts</span><span class="pi">:</span> <span class="s">no</span>
+  <span class="na">connection</span><span class="pi">:</span> <span class="s">local</span>
+
+  <span class="na">vars</span><span class="pi">:</span>
+    <span class="na">netapp_hostname</span><span class="pi">:</span> <span class="s">192.168.0.10</span>
+    <span class="na">netapp_username</span><span class="pi">:</span> <span class="s">admin</span>
+    <span class="na">netapp_password</span><span class="pi">:</span> <span class="s">password</span>
+  <span class="na">tasks</span><span class="pi">:</span>  
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Create Volume</span>
+      <span class="na">sf_volume_manager</span><span class="pi">:</span>
+        <span class="na">hostname</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">username</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">password</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">state</span><span class="pi">:</span> <span class="s">present</span>
+        <span class="na">name</span><span class="pi">:</span> <span class="s">AnsibleVol</span>
+        <span class="na">qos</span><span class="pi">:</span> <span class="pi">{</span><span class="nv">minIOPS</span><span class="pi">:</span> <span class="nv">1000</span><span class="pi">,</span> <span class="nv">maxIOPS</span><span class="pi">:</span> <span class="nv">20000</span><span class="pi">,</span> <span class="nv">burstIOPS</span><span class="pi">:</span> <span class="nv">50000</span><span class="pi">}</span>
+        <span class="na">account_id</span><span class="pi">:</span> <span class="m">3</span>
+        <span class="na">enable512e</span><span class="pi">:</span> <span class="s">False</span>
+        <span class="na">size</span><span class="pi">:</span> <span class="m">1</span>
+        <span class="na">size_unit</span><span class="pi">:</span> <span class="s">gb</span>
+
+</code></pre></div></div>
+
+<p>La ejecución de este código YAML simplemente se realizaría con el siguiente comando:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ansible-playbook example_netapp_solidfire.yml
+ <span class="o">[</span>WARNING]: Could not match supplied host pattern, ignoring: all
+ <span class="o">[</span>WARNING]: provided hosts list is empty, only localhost is available
+
+PLAY <span class="o">[</span>example netapp solidfire] <span class="k">****************************************</span>
+
+TASK <span class="o">[</span>Create Volume] <span class="k">***************************************************</span>
+changed: <span class="o">[</span>localhost]
+
+PLAY RECAP <span class="k">*************************************************************</span>
+localhost              : <span class="nv">ok</span><span class="o">=</span>1    <span class="nv">changed</span><span class="o">=</span>1    <span class="nv">unreachable</span><span class="o">=</span>0    <span class="nv">failed</span><span class="o">=</span>0
+</code></pre></div></div>
+
+<p>Y se puede revisar que se ha creado satisfactoriamente el volumen dentro de la cabina de SolidFire.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">PS</span><span class="w"> </span><span class="nx">C:\</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">Get-SFVolume</span><span class="w"> </span><span class="nt">-Name</span><span class="w"> </span><span class="nx">AnsibleVol</span><span class="w">
+
+</span><span class="nf">VolumeID</span><span class="w">           </span><span class="p">:</span><span class="w"> </span><span class="nx">27</span><span class="w">
+</span><span class="nf">Name</span><span class="w">               </span><span class="p">:</span><span class="w"> </span><span class="nx">AnsibleVol</span><span class="w">
+</span><span class="nf">AccountID</span><span class="w">          </span><span class="p">:</span><span class="w"> </span><span class="nx">3</span><span class="w">
+</span><span class="nf">CreateTime</span><span class="w">         </span><span class="p">:</span><span class="w"> </span><span class="nx">2018-01-13T16:46:22Z</span><span class="w">
+</span><span class="nf">Status</span><span class="w">             </span><span class="p">:</span><span class="w"> </span><span class="nx">active</span><span class="w">
+</span><span class="nf">Access</span><span class="w">             </span><span class="p">:</span><span class="w"> </span><span class="nx">readWrite</span><span class="w">
+</span><span class="nf">Enable512e</span><span class="w">         </span><span class="p">:</span><span class="w"> </span><span class="nx">False</span><span class="w">
+</span><span class="nf">Iqn</span><span class="w">                </span><span class="p">:</span><span class="w"> </span><span class="nx">iqn.2010-01.com.solidfire:n6o7.ansiblevol.27</span><span class="w">
+</span><span class="nf">ScsiEUIDeviceID</span><span class="w">    </span><span class="p">:</span><span class="w"> </span><span class="nx">6e366f370000001bf47acc0100000000</span><span class="w">
+</span><span class="nf">ScsiNAADeviceID</span><span class="w">    </span><span class="p">:</span><span class="w"> </span><span class="nx">6f47acc1000000006e366f370000001b</span><span class="w">
+</span><span class="nf">Qos</span><span class="w">                </span><span class="p">:</span><span class="w"> </span><span class="nx">SolidFire.Element.Api.VolumeQOS</span><span class="w">
+</span><span class="nf">VolumeAccessGroups</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{}</span><span class="w">
+</span><span class="nf">VolumePairs</span><span class="w">        </span><span class="p">:</span><span class="w"> </span><span class="p">{}</span><span class="w">
+</span><span class="nf">DeleteTime</span><span class="w">         </span><span class="p">:</span><span class="w">
+</span><span class="nf">PurgeTime</span><span class="w">          </span><span class="p">:</span><span class="w">
+</span><span class="nf">SliceCount</span><span class="w">         </span><span class="p">:</span><span class="w"> </span><span class="nx">1</span><span class="w">
+</span><span class="nf">TotalSize</span><span class="w">          </span><span class="p">:</span><span class="w"> </span><span class="nx">1000341504</span><span class="w">
+</span><span class="nf">BlockSize</span><span class="w">          </span><span class="p">:</span><span class="w"> </span><span class="nx">4096</span><span class="w">
+</span><span class="nf">VirtualVolumeID</span><span class="w">    </span><span class="p">:</span><span class="w">
+</span><span class="nf">Attributes</span><span class="w">         </span><span class="p">:</span><span class="w"> </span><span class="p">{}</span><span class="w">
+
+</span></code></pre></div></div>
+
+:ET

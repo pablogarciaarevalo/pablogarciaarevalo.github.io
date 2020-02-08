@@ -1,0 +1,127 @@
+I"q<p>A continuación de muestras los pasos para la instalación de kuberenetes sobre tres servidores CentOS 7 con una instalación mínima realizada usando kubeadm. El objetivo de esta instalación es disponer de un clúster pequeño para entornos de pruebas.</p>
+
+<h3 id="requisitos">Requisitos</h3>
+
+<p>Hay que verificar que los tres servidores tienen visibilidad entre ambos y con resolución de nombres. Las siguientes tareas se realizan en los tres servidores.</p>
+
+<p>Se deshabilita el firewall al ser un entorno de pruebas.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>systemctl disable firewalld
+systemctl stop firewalld
+systemctl status firewalld
+</code></pre></div></div>
+<p>Se deshabilita el SElinux.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>setenforce 0
+<span class="nb">sed</span> <span class="nt">-i</span> <span class="s1">'s/SELINUX=enforcing/SELINUX=disabled/g'</span> /etc/selinux/config
+</code></pre></div></div>
+
+<p>Se modifican variables del sysctl.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cat</span> <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh"> &gt; /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+</span><span class="no">EOF
+</span>sysctl <span class="nt">-p</span>
+</code></pre></div></div>
+
+<p>De deshabilita el SWAP y se comentan las líneas de swap en el fichero fstab.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swapoff <span class="nt">-a</span>
+vi /etc/fstab
+</code></pre></div></div>
+
+<h3 id="instalación-de-docker">Instalación de docker</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum <span class="nb">install</span> <span class="nt">-y</span> yum-utils device-mapper-persistent-data lvm2
+ 
+yum-config-manager <span class="nt">--add-repo</span> https://download.docker.com/linux/centos/docker-ce.repo
+
+yum update
+yum <span class="nb">install</span> <span class="nt">-y</span> docker-ce-18.06.1.ce
+
+<span class="nb">mkdir</span> /etc/docker
+
+<span class="nb">cat</span> <span class="o">&gt;</span> /etc/docker/daemon.json <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh">
+{
+"exec-opts": ["native.cgroupdriver=systemd"],
+"log-driver": "json-file",
+"log-opts": {
+"max-size": "100m"
+},
+"storage-driver": "overlay2",
+"storage-opts": [
+"overlay2.override_kernel_check=true"
+]
+}
+</span><span class="no">EOF
+
+</span><span class="nb">mkdir</span> <span class="nt">-p</span> /etc/systemd/system/docker.service.d
+
+systemctl daemon-reload
+systemctl restart docker
+systemctl <span class="nb">enable </span>docker
+</code></pre></div></div>
+
+<h3 id="instalación-de-kuberentes">Instalación de kuberentes</h3>
+
+<p>Se configuran los repositorios para poder descargar los paquetes.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cat</span> <span class="o">&lt;&lt;</span><span class="no">EOF</span><span class="sh"> &gt; /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kube*
+</span><span class="no">EOF
+</span></code></pre></div></div>
+
+<p>Se instalan unas versiones en concreto de los paquetes de kubernetes.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>yum <span class="nb">install</span> <span class="nt">-y</span> kubelet-1.13.5 kubeadm-1.13.5 kubectl-1.13.5 <span class="nt">--disableexcludes</span><span class="o">=</span>kubernetes
+systemctl <span class="nb">enable </span>kubelet 
+systemctl start kubelet
+</code></pre></div></div>
+
+<p>Se inicializa el clúster ejecutando el siguientes comando <strong>solo desde el master</strong>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubeadm init
+</code></pre></div></div>
+
+<p>Se ejecutan los siguientes comandos tal y como muestra la salida del comando de inicialización.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> <span class="nt">-p</span> <span class="nv">$HOME</span>/.kube
+<span class="nb">sudo cp</span> <span class="nt">-i</span> /etc/kubernetes/admin.conf <span class="nv">$HOME</span>/.kube/config
+<span class="nb">sudo chown</span> <span class="si">$(</span><span class="nb">id</span> <span class="nt">-u</span><span class="si">)</span>:<span class="si">$(</span><span class="nb">id</span> <span class="nt">-g</span><span class="si">)</span> <span class="nv">$HOME</span>/.kube/config
+</code></pre></div></div>
+
+<h3 id="unión-de-nodos-al-clúster">Unión de nodos al clúster</h3>
+
+<p>Desde el resto de nodos, se ejecuta el siguientes comando para unirlos al clúster.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubeadm <span class="nb">join </span>192.168.0.11:6443 <span class="nt">--token</span> x0hs5a.z7cjeel7326m08hb <span class="nt">--discovery-token-ca-cert-hash</span> sha56:3827b8400d6030b41b3677a27f017e42ad52e5c252730bc57e975451c47350bd
+</code></pre></div></div>
+
+<h3 id="gestión-del-clúster">Gestión del clúster</h3>
+
+<p>Se verifica el estado del clúster.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get pods <span class="nt">--all-namespaces</span>
+kubectl get nodes
+</code></pre></div></div>
+
+<p>Se configura la red a utilizar dentro de Kubernetes. En este caso se instala Wave.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">export </span><span class="nv">kubever</span><span class="o">=</span><span class="si">$(</span>kubectl version | <span class="nb">base64</span> | <span class="nb">tr</span> <span class="nt">-d</span> <span class="s1">'\n'</span><span class="si">)</span>
+kubectl apply <span class="nt">-f</span> <span class="s2">"https://cloud.weave.works/k8s/net?k8s-version=</span><span class="nv">$kubever</span><span class="s2">"</span>
+</code></pre></div></div>
+
+<p>Se verifica el estado del clúster</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get pods <span class="nt">--all-namespaces</span>
+</code></pre></div></div>
+
+:ET

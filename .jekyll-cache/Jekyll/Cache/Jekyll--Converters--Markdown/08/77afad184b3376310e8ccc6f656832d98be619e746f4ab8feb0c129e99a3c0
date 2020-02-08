@@ -1,0 +1,148 @@
+I"�*<p>El software de contenedores <a href="https://www.docker.com/">docker</a> habilita la integración de volúmenes con sistemas de almacenamiento de datos externos, permitiendo la existencia de datos persistentes a través de los <a href="https://docs.docker.com/engine/extend/plugins_volume/">plugins de volúmen</a>.</p>
+
+<p>Existe un ‘volume plugin’ para las cabinas de <a href="https://store.docker.com/plugins/netapp-docker-volume-plugin-ndvp">NetApp</a> ONTAP, E-series y SolidFire. Este plugin es open source y puede verse el código en el repositorio de <a href="https://github.com/NetApp/netappdvp">GitHub</a>.</p>
+
+<h3 id="instalación">Instalación</h3>
+
+<p>El primer paso es la instalación del software docker en el sistema operativo correspondiente. El procedimiento para cada uno es detallado en la propia <a href="https://docs.docker.com/engine/installation/">documentación</a> de Docker. En el caso de Fedora simplemente es necesario instalarlo a través del comando:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>yum <span class="nb">install </span>docker
+</code></pre></div></div>
+
+<p>Antes de comenzar con la integración del plugin de Docker con ONTAP, es siempre recomendable probar el funcionamiento de docker con un contenedor simple tipo <a href="https://hub.docker.com/_/hello-world/">Hello World</a> y <a href="https://library.netapp.com/ecm/ecm_download_file/ECMLP2495188">montar un volúmen NFS</a> desde la cabina ONTAP que se desea utilizar.</p>
+
+<h3 id="requisitos">Requisitos</h3>
+
+<p>Para poder delegar el control de la gestión de los volúmenes a los aplicativos, solo la primera vez el administrador del almacenamiento debería revisar en la cabina ONTAP que:</p>
+
+<ul>
+  <li>Exista y esté habilitado un usuario en el SVM (Storage Virtual Machine) con los permisos necesarios.</li>
+</ul>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; security login show <span class="nt">-vserver</span> svm1 <span class="nt">-user-or-group-name</span> vsadmin
+
+                             Authentication             Acct   Is-Nsswitch
+User/Group Name  Application Method    Role Name        Locked Group
+<span class="nt">----------------</span> <span class="nt">-----------</span> <span class="nt">---------</span> <span class="nt">----------------</span> <span class="nt">------</span> <span class="nt">-----------</span>
+vsadmin          http        password  vsadmin          no     no
+vsadmin          ontapi      password  vsadmin          no     no
+vsadmin          ssh         password  vsadmin          no     no
+</code></pre></div></div>
+
+<ul>
+  <li>En el SVM que se desea utilizar existe una LIF (Logical Interface) para la gestión y una LIF para los datos.</li>
+</ul>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; network interface show <span class="nt">-vserver</span> svm1 <span class="nt">-fields</span> address,data-protocol,firewall-policy
+
+vserver lif                     data-protocol address       firewall-policy
+<span class="nt">-------</span> <span class="nt">-----------------------</span> <span class="nt">-------------</span> <span class="nt">-------------</span> <span class="nt">---------------</span>
+svm1    svm1_admin_lif1         none          192.168.0.130 mgmt
+svm1    svm1_cifs_nfs_lif1      nfs,cifs      192.168.0.135 data
+</code></pre></div></div>
+
+<ul>
+  <li>Los volúmenes existentes y la política de exportación NFS aplicada es correcta.</li>
+</ul>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; volume show <span class="nt">-vserver</span> svm1 <span class="nt">-fields</span> junction-path, policy
+
+vserver volume            policy  junction-path
+<span class="nt">-------</span> <span class="nt">-----------------</span> <span class="nt">-------</span> <span class="nt">------------------</span>
+svm1    svm1_root         default /
+</code></pre></div></div>
+
+<ul>
+  <li>La política aplicada tenga las reglas necesarias para que se pueda montar los volúmenes NFS.</li>
+</ul>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; export-policy rule show <span class="nt">-vserver</span> svm1 <span class="nt">-policyname</span> default
+             Policy          Rule    Access   Client                RO
+Vserver      Name            Index   Protocol Match                 Rule
+<span class="nt">------------</span> <span class="nt">---------------</span> <span class="nt">------</span>  <span class="nt">--------</span> <span class="nt">---------------------</span> <span class="nt">---------</span>
+svm1         default         1       nfs      0.0.0.0/0             any
+</code></pre></div></div>
+
+<h3 id="ejemplo">Ejemplo</h3>
+
+<p>Tras esto y tal y como se muestra en la <a href="http://netappdvp.readthedocs.io/en/latest/quick_start.html">documentación</a> del volume plugin de NetApp, lo siguiente que hay que realizar es crear el directorio de trabajo para el plugin y crear un fichero <a href="https://en.wikipedia.org/wiki/JSON">JSON</a>.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">mkdir</span> /etc/netappdvp
+
+<span class="nv">$ </span><span class="nb">cat</span> <span class="o">&lt;&lt;</span> <span class="no">EOF</span><span class="sh"> &gt; /etc/netappdvp/config.json
+{
+    "version": 1,
+    "storageDriverName": "ontap-nas",
+    "managementLIF": "192.168.0.101",
+    "dataLIF": "192.168.0.135",
+    "svm": "svm1",
+    "username": "admin",
+    "password": "Netapp1!",
+    "aggregate": "aggr1_01"
+}
+</span><span class="no">EOF
+</span></code></pre></div></div>
+
+<p>Tras ello ya es posible la instalación del plugin de NetApp como se muestra a continuación.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker plugin <span class="nb">install </span>netapp/ndvp-plugin:17.07 <span class="nt">--alias</span> netapp <span class="nt">--grant-all-permissions</span>
+</code></pre></div></div>
+
+<p>Se  verifica que el estado del plugin es correcto con el siguiente comando.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker plugin <span class="nb">ls
+</span>ID                  NAME                DESCRIPTION                          ENABLED
+0f7575ad513c        netapp:latest       nDVP - NetApp Docker Volume Plugin   <span class="nb">true</span>
+</code></pre></div></div>
+
+<p>Y se ejecuta la creación de un volumen según se ha definido previamente en el fichero JSON:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>docker volume create <span class="nt">-d</span> netapp <span class="nt">--name</span> my_data <span class="nt">-o</span> <span class="nv">size</span><span class="o">=</span>10g
+</code></pre></div></div>
+
+<p>Se puede comprobar los volúmenes existentes:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker volume <span class="nb">ls
+</span>DRIVER              VOLUME NAME
+netapp:latest       my_data
+</code></pre></div></div>
+
+<p>Y ver los detalles de un volumen en concreto:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker volume inspect my_data
+<span class="o">[</span>
+    <span class="o">{</span>
+        <span class="s2">"CreatedAt"</span>: <span class="s2">"0001-01-01T00:00:00Z"</span>,
+        <span class="s2">"Driver"</span>: <span class="s2">"netapp:latest"</span>,
+        <span class="s2">"Labels"</span>: <span class="o">{}</span>,
+        <span class="s2">"Mountpoint"</span>: <span class="s2">"/var/lib/docker/plugins/0f7575ad513c26bb75843bd7650dfa2d90cb083e1136e5a716de71093b3566f9/rootfs"</span>,
+        <span class="s2">"Name"</span>: <span class="s2">"my_data"</span>,
+        <span class="s2">"Options"</span>: <span class="o">{</span>
+            <span class="s2">"size"</span>: <span class="s2">"10g"</span>
+        <span class="o">}</span>,
+        <span class="s2">"Scope"</span>: <span class="s2">"global"</span>,
+        <span class="s2">"Status"</span>: <span class="o">{</span>
+            <span class="s2">"Snapshots"</span>: null
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">]</span>
+</code></pre></div></div>
+
+<p>Desde la cabina ONTAP se puede verificar que se ha generado el volumen correctamente:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; volume show <span class="nt">-vserver</span> svm1 <span class="nt">-volume</span> <span class="k">*</span>my_data<span class="k">*</span>
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+<span class="nt">---------</span> <span class="nt">------------</span> <span class="nt">------------</span> <span class="nt">----------</span> <span class="nt">----</span> <span class="nt">----------</span> <span class="nt">----------</span> <span class="nt">-----</span>
+svm1      netappdvp_my_data aggr1_01 online    RW         10GB     9.50GB    5%
+</code></pre></div></div>
+
+<p>Una vez creado el volumen persistente en la cabina ONTAP, se pueden ejecutar uno o varios contenedores montando este volumen persistente desde uno o varios hosts.</p>
+
+<p>En el ejemplo de a continuación se ejecuta un contenedor usando el volumen creado y montándolo sobre el path /data. Se observa que el volumen se ha montado desde dentro del contenedor.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>docker run <span class="nt">-it</span> <span class="nt">--name</span> mycont <span class="nt">-v</span> my_data:/data busybox /bin/sh
+
+<span class="nv">$ </span>mount | <span class="nb">grep </span>my_data
+192.168.0.135:/netappdvp_my_data on /data <span class="nb">type </span>nfs <span class="o">(</span>rw,relatime,vers<span class="o">=</span>3,rsize<span class="o">=</span>65536,wsize<span class="o">=</span>65536,namlen<span class="o">=</span>255,hard,proto<span class="o">=</span>tcp,timeo<span class="o">=</span>600,retrans<span class="o">=</span>2,sec<span class="o">=</span>sys,mountaddr<span class="o">=</span>192.168.0.135,mountvers<span class="o">=</span>3,mountport<span class="o">=</span>635,mountproto<span class="o">=</span>udp,local_lock<span class="o">=</span>none,addr<span class="o">=</span>192.168.0.135<span class="o">)</span>
+</code></pre></div></div>
+:ET

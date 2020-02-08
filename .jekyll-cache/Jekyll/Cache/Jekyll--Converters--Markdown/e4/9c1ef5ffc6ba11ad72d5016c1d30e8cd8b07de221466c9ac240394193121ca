@@ -1,0 +1,98 @@
+I"T<p><a href="https://www.ansible.com/">Ansible</a> es una herramienta que permite la gestión de configuraciones, la provisión, el despliegue y la orquestación. Ansible no requiere de la instalación de agentes o clientes en los equipos que gestiona y está basado en ficheros <a href="https://en.wikipedia.org/wiki/YAML">YAML</a>.</p>
+
+<p>Desde la versión 2.3 de Ansible, varios módulos de NetApp ya son parte del proyecto de forma nativa. Dentro del proyecto existen módulos para las cabinas de NetApp ONTAP, E-series y SolidFire. Para ver más información es interesante acceder a este contenido <a href="https://www.ansible.com/integrations/infrastructure/netapp">https://www.ansible.com/integrations/infrastructure/netapp</a>. Los detalles de los módulos están en este enlace <a href="http://docs.ansible.com/ansible/latest/list_of_storage_modules.html#netapp">http://docs.ansible.com/ansible/latest/list_of_storage_modules.html#netapp</a> que proporcionan toda la información de los input necesarios para ejecutar cada módulo.</p>
+
+<h3 id="instalación">Instalación</h3>
+
+<p>En el caso de las cabinas ONTAP, los requisitos necesarios para trabajar con Ansible son:</p>
+<ul>
+  <li>Una cabina física o virtual con ONTAP versión 8.3 o superior</li>
+  <li>Ansible 2.3</li>
+  <li>Paquete netapp-lib (2015.9.25)</li>
+</ul>
+
+<p>Para instalarlo simplemente hay que ejecutar los siguientes comandos:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pip <span class="nb">install </span>ansible <span class="nt">--user</span>
+<span class="nv">$ </span>pip <span class="nb">install </span>netapp-lib <span class="nt">--user</span>
+</code></pre></div></div>
+
+<p>En mi caso ha sido necesario instalar algun paquete adicional. Los siguientes comandos muestran que son necesarios más paquetes y la instalación de los mismos.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>python <span class="nt">-c</span> <span class="s2">"from netapp_lib.api.zapi import zapi"</span> <span class="o">&amp;&amp;</span> <span class="nb">echo</span> <span class="nv">$?</span>
+<span class="nv">$ </span>python <span class="nt">-c</span> <span class="s2">"from netapp_lib.api.zapi import errors"</span> <span class="o">&amp;&amp;</span> <span class="nb">echo</span> <span class="nv">$?</span>
+<span class="nv">$ </span>pip <span class="nb">install </span>lxml
+<span class="nv">$ </span>pip <span class="nb">install </span>oslo_log <span class="nt">--ignore-installed</span> <span class="nt">--user</span>
+</code></pre></div></div>
+
+<h3 id="ejemplo">Ejemplo</h3>
+
+<p>Y el siguiente código YAML muestra el ejemplo básico para la creación un SVM (Storage Virtual Machine) sobra una cabina ONTAP. El código está actualizado en el repositorio de <a href="https://github.com/pablogarciaarevalo/ansible_playbooks/blob/master/example_netapp_ontap.yml">GitHub</a>:</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">---</span>
+<span class="c1"># This playbook deploys a NetApp SVM on ONTAP</span>
+
+<span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">example netapp ontap</span>
+  <span class="na">hosts</span><span class="pi">:</span> <span class="s">localhost</span>
+  <span class="na">gather_facts</span><span class="pi">:</span> <span class="s">no</span>
+  <span class="na">connection</span><span class="pi">:</span> <span class="s">local</span>
+
+  <span class="na">vars</span><span class="pi">:</span>
+    <span class="na">netapp_hostname</span><span class="pi">:</span> <span class="s">192.168.0.10</span>
+    <span class="na">netapp_username</span><span class="pi">:</span> <span class="s">admin</span>
+    <span class="na">netapp_password</span><span class="pi">:</span> <span class="s">password</span>
+  <span class="na">tasks</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">SVM Manager</span>
+      <span class="na">na_cdot_svm</span><span class="pi">:</span>
+        <span class="na">state</span><span class="pi">:</span> <span class="s">present</span>
+        <span class="na">name</span><span class="pi">:</span> <span class="s">ansibleVServer</span>
+        <span class="na">root_volume</span><span class="pi">:</span> <span class="s">vol1</span>
+        <span class="na">root_volume_aggregate</span><span class="pi">:</span> <span class="s">aggrSATA_n1</span>
+        <span class="na">root_volume_security_style</span><span class="pi">:</span> <span class="s">ntfs</span>
+        <span class="na">hostname</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">username</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">password</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Volume Manager</span>
+      <span class="na">na_cdot_volume</span><span class="pi">:</span>
+        <span class="na">state</span><span class="pi">:</span> <span class="s">present</span>
+        <span class="na">name</span><span class="pi">:</span> <span class="s">ansibleVolume</span>
+        <span class="na">aggregate_name</span><span class="pi">:</span> <span class="s">aggrSATA_n1</span>
+        <span class="na">size</span><span class="pi">:</span> <span class="m">20</span>
+        <span class="na">size_unit</span><span class="pi">:</span> <span class="s">mb</span>
+        <span class="na">vserver</span><span class="pi">:</span> <span class="s">ansibleVServer</span>
+        <span class="na">hostname</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">username</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+        <span class="na">password</span><span class="pi">:</span> <span class="s2">"</span><span class="s">"</span>
+
+</code></pre></div></div>
+
+<p>La ejecución de este código YAML simplemente se realizaría con el siguiente comando:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>ansible-playbook example_netapp_ontap.yml
+
+ <span class="o">[</span>WARNING]: Could not match supplied host pattern, ignoring: all
+ <span class="o">[</span>WARNING]: provided hosts list is empty, only localhost is available
+
+PLAY <span class="o">[</span>example netapp ontap] <span class="k">********************************************</span>
+TASK <span class="o">[</span>SVM Manager] <span class="k">*****************************************************</span>
+changed: <span class="o">[</span>localhost]
+
+TASK <span class="o">[</span>Volume Manager] <span class="k">**************************************************</span>
+changed: <span class="o">[</span>localhost]
+
+PLAY RECAP <span class="k">*************************************************************</span>
+
+</code></pre></div></div>
+
+<p>Y se puede revisar que se ha creado satisfactoriamente el SVM en ONTAP.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cluster1::&gt; vserver show <span class="nt">-vserver</span> <span class="k">*</span>ansible<span class="k">*</span>
+                               Admin      Operational Root
+Vserver     Type    Subtype    State      State       Volume     Aggregate
+<span class="nt">-----------</span> <span class="nt">-------</span> <span class="nt">----------</span> <span class="nt">----------</span> <span class="nt">-----------</span> <span class="nt">----------</span> <span class="nt">----------</span>
+ansibleVServer data default    running    running     vol1       aggrSATA_n1
+
+</code></pre></div></div>
+
+:ET

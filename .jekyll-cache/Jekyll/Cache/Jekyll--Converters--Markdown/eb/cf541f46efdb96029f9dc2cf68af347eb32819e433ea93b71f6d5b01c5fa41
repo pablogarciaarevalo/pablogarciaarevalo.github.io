@@ -1,0 +1,184 @@
+I"��<p>ONTAP, desde prácticamente desde sus inicios, permite el acceso nativo por los protocolos SMB y NFS simultáneamente al mismo volumen a través de los shares y los exports.</p>
+
+<p><img src="/assets/img/Acceso-multiprotocolo-con-ONTAP-001.png" alt="" /></p>
+
+<p>Los permisos del sistema de ficheros se aplican a nivel de volumen, y existen tres tipos de estilos de seguridad: NTFS, UNIX y mixto. Existe mucha documentación donde se detalla el comportamiento para cada uno de los estilos de seguridad <a href="https://library.netapp.com/ecmdocs/ECMP1196891/html/GUID-0217E8D4-0DEE-420A-8DF9-E0B69FE4C427.html">https://library.netapp.com/ecmdocs/ECMP1196891/html/GUID-0217E8D4-0DEE-420A-8DF9-E0B69FE4C427.html</a>. Un malentendido muy común es que el estilo de seguridad mixto de ONTAP es el necesario para acceder a través de los dos protocolos.</p>
+
+<p><img src="/assets/img/Acceso-multiprotocolo-con-ONTAP-002.png" alt="" /></p>
+
+<p>Muchos entornos no requieren una gestión de permisos complicados en los dos entornos. Normalmente el acceso a través de SMB posee una estructura de usuarios y permisos más compleja gestionada por Active Directory, y un reducido grupo de servidores con unos usuarios determinados necesitan acceder a los mismos datos pero requieren mantener los permisos. Este escenario que suele ser el más común, se soluciona implantando un estilo de seguridad NTFS a nivel de volumen y haciendo una translación de los usuarios del mundo Unix/Linux al mundo Windows para verificar el acceso. ONTAP, por defecto, hace la traslación entre ambos mundos de forma nativa en el formato miDominio\miUsuario (Windows) &lt;&gt; miUsuario (Linux).</p>
+
+<p>A continuación se muestra este escenario descrito, con acceso al mismo volumen de datos por protocolo SMB con permisos gestionados por Active Directory, y un pequeño grupo de servidores web con PHP accediendo a la información, a través del usuario de PHP www-data. Para gestionar estos permisos se crea un usuario nuevo en el Active Directory con este usuario www-data.</p>
+
+<p><img src="/assets/img/Acceso-multiprotocolo-con-ONTAP-003.png" alt="" /></p>
+
+<p>Desde ONTAP se crea un volumen con estilo de seguridad NTFS pues es el estilo de seguridad más complejo a gestionar.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">cluster1::</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">volume</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-vserver</span><span class="w"> </span><span class="nx">svm1</span><span class="w"> </span><span class="nt">-fields</span><span class="w"> </span><span class="nx">security-style</span><span class="w">
+</span><span class="nf">vserver</span><span class="w"> </span><span class="nx">volume</span><span class="w">   </span><span class="nx">security-style</span><span class="w">
+</span><span class="nf">-------</span><span class="w"> </span><span class="nf">--------</span><span class="w"> </span><span class="nf">--------------</span><span class="w">
+</span><span class="nx">svm1</span><span class="w">    </span><span class="nx">vol_www</span><span class="w">  </span><span class="nx">ntfs</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Y se establece un share permitiendo el acceso exclusivo a ese usuario de Active Directory. En el acceso a este volumen se establecerían todos los usuarios Windows que se deseen que se tenga acceso.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">cluster1::</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">cifs</span><span class="w"> </span><span class="nx">share</span><span class="w"> </span><span class="nx">show</span><span class="w">
+</span><span class="nf">Vserver</span><span class="w">        </span><span class="nx">Share</span><span class="w">         </span><span class="nx">Path</span><span class="w">              </span><span class="nx">Properties</span><span class="w"> </span><span class="nx">Comment</span><span class="w">  </span><span class="nx">ACL</span><span class="w">
+</span><span class="nf">--------------</span><span class="w"> </span><span class="nf">-------------</span><span class="w"> </span><span class="nf">-----------------</span><span class="w"> </span><span class="nf">----------</span><span class="w"> </span><span class="nf">--------</span><span class="w"> </span><span class="nf">-----------</span><span class="w">
+</span><span class="nx">svm1</span><span class="w">           </span><span class="nx">vol_www</span><span class="w">       </span><span class="nx">/vol_www</span><span class="w">          </span><span class="nx">browsable</span><span class="w">  </span><span class="nf">-</span><span class="w">        </span><span class="nx">www-data</span><span class="w"> </span><span class="nx">/</span><span class="w"> </span><span class="nx">Full</span><span class="w"> </span><span class="nx">Control</span><span class="w">
+                                               </span><span class="nx">changenotify</span><span class="w">
+                                               </span><span class="nx">oplocks</span><span class="w">
+                                               </span><span class="nx">show-previous-versions</span><span class="w">
+</span></code></pre></div></div>
+
+<p>En ONTAP se crea localmente este usuario www-data, y previamente el grupo al que pertenece este usuario.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">cluster1::</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">services</span><span class="w"> </span><span class="nx">unix-group</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="nt">-name</span><span class="w"> </span><span class="nx">www-data</span><span class="w"> </span><span class="nt">-id</span><span class="w"> </span><span class="nx">33</span><span class="w">
+</span><span class="nf">cluster1::</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">services</span><span class="w"> </span><span class="nx">unix-user</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="nt">-user</span><span class="w"> </span><span class="nx">www-data</span><span class="w"> </span><span class="nt">-id</span><span class="w"> </span><span class="nx">33</span><span class="w"> </span><span class="nt">-primary-gid</span><span class="w"> </span><span class="nx">33</span><span class="w">
+</span><span class="nf">cluster1::</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">services</span><span class="w"> </span><span class="nx">unix-user</span><span class="w"> </span><span class="nx">show</span><span class="w">
+               </span><span class="nf">User</span><span class="w">            </span><span class="nx">User</span><span class="w">   </span><span class="nx">Group</span><span class="w">  </span><span class="nx">Full</span><span class="w">
+</span><span class="nf">Vserver</span><span class="w">        </span><span class="nx">Name</span><span class="w">            </span><span class="nx">ID</span><span class="w">     </span><span class="nx">ID</span><span class="w">     </span><span class="nx">Name</span><span class="w">
+</span><span class="nf">--------------</span><span class="w"> </span><span class="nf">---------------</span><span class="w"> </span><span class="nf">------</span><span class="w"> </span><span class="nf">------</span><span class="w"> </span><span class="nf">--------------------------------</span><span class="w">
+</span><span class="nx">svm1</span><span class="w">           </span><span class="nx">nobody</span><span class="w">          </span><span class="nx">65535</span><span class="w">  </span><span class="nx">65535</span><span class="w">
+</span><span class="nx">svm1</span><span class="w">           </span><span class="nx">pcuser</span><span class="w">          </span><span class="nx">65534</span><span class="w">  </span><span class="nx">65534</span><span class="w">
+</span><span class="nx">svm1</span><span class="w">           </span><span class="nx">root</span><span class="w">            </span><span class="nx">0</span><span class="w">      </span><span class="nx">1</span><span class="w">
+</span><span class="nx">svm1</span><span class="w">           </span><span class="nx">www-data</span><span class="w">        </span><span class="nx">33</span><span class="w">     </span><span class="nx">33</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Desde los clientes Windows se monta el volumen por SMB y se verifica que se tiene acceso.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">C:\Users\Administrator.DEMO</span><span class="err">&gt;</span><span class="nx">net</span><span class="w"> </span><span class="nx">use</span><span class="w"> </span><span class="nx">f:</span><span class="w"> </span><span class="nx">\\192.168.0.233\vol_www</span><span class="w">
+</span><span class="nf">The</span><span class="w"> </span><span class="nx">password</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">invalid</span><span class="w"> </span><span class="nx">for</span><span class="w"> </span><span class="nx">\\192.168.0.233\vol_www.</span><span class="w">
+
+</span><span class="nf">Enter</span><span class="w"> </span><span class="nx">the</span><span class="w"> </span><span class="nx">user</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="nx">for</span><span class="w"> </span><span class="s1">'192.168.0.233'</span><span class="p">:</span><span class="w"> </span><span class="nx">demo\www-data</span><span class="w">
+</span><span class="nf">Enter</span><span class="w"> </span><span class="nx">the</span><span class="w"> </span><span class="nx">password</span><span class="w"> </span><span class="nx">for</span><span class="w"> </span><span class="nx">192.168.0.233:</span><span class="w">
+</span><span class="nf">The</span><span class="w"> </span><span class="nx">command</span><span class="w"> </span><span class="nx">completed</span><span class="w"> </span><span class="nx">successfully.</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Desde los servidores Linux se crea el usuario local www-data y se habilita el acceso.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">root</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="c"># groupadd -g 33 www-data</span><span class="w">
+</span><span class="p">[</span><span class="kt">root</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="c"># useradd -u 33 -g 33 -d /mnt/www www-data</span><span class="w">
+</span><span class="p">[</span><span class="kt">root</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="c"># passwd www-data</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Se monta el volumen por NFS desde los servidores Linux.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">root</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="c"># mkdir /mnt/www-data</span><span class="w">
+</span><span class="p">[</span><span class="kt">root</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="c"># mount -t nfs 192.168.0.132:/vol_www /mnt/www-data/</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Se verifica que el usuario root no tiene acceso, pues ONTAP traslada el usuario de Linux root como el usuario DEMO\Administrator, que no tiene acceso al share.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">root</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="c"># ls -altr /mnt/www-data/</span><span class="w">
+</span><span class="kt">ls</span><span class="p">:</span><span class="w"> </span><span class="kt">cannot</span><span class="w"> </span><span class="kt">open</span><span class="w"> </span><span class="kt">directory</span><span class="w"> </span><span class="nf">/mnt/www-data/:</span><span class="w"> </span><span class="nx">Permission</span><span class="w"> </span><span class="nx">denied</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Accediendo con el usuario www-data se verifica que se tiene acceso.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">www</span><span class="nt">-data</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="err">$</span><span class="w"> </span><span class="kt">ls</span><span class="w"> </span><span class="nt">-altr</span><span class="w"> </span><span class="nf">/mnt/www-data/</span><span class="w">
+</span><span class="kt">total</span><span class="w"> </span><span class="mi">8</span><span class="w">
+</span><span class="kt">drwxrwxrwx</span><span class="w">  </span><span class="mi">2</span><span class="w"> </span><span class="kt">root</span><span class="w"> </span><span class="kt">root</span><span class="w"> </span><span class="mi">4096</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">22</span><span class="w"> </span><span class="mi">13</span><span class="p">:</span><span class="mi">56</span><span class="w"> </span><span class="o">.</span><span class="w">
+</span><span class="kt">drwxr</span><span class="nt">-xr-x</span><span class="o">.</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="kt">root</span><span class="w"> </span><span class="kt">root</span><span class="w">   </span><span class="mi">42</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">22</span><span class="w"> </span><span class="mi">14</span><span class="p">:</span><span class="mi">03</span><span class="w"> </span><span class="o">..</span><span class="w">
+</span><span class="kt">drwxrwxrwx</span><span class="w">  </span><span class="mi">3</span><span class="w"> </span><span class="kt">root</span><span class="w"> </span><span class="kt">root</span><span class="w"> </span><span class="mi">4096</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">22</span><span class="w"> </span><span class="mi">14</span><span class="p">:</span><span class="mi">05</span><span class="w"> </span><span class="o">.</span><span class="nf">snapshot</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Desde ONTAP se puede comprobar las sesiones SMB abiertas y los usuarios que la tienen abierta del mundo Windows y mundo Linux respectivamente.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">cluster1::</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">cifs</span><span class="w"> </span><span class="nx">session</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-fields</span><span class="w"> </span><span class="nx">windows-user</span><span class="p">,</span><span class="nx">unix-user</span><span class="w">
+</span><span class="nf">node</span><span class="w">        </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">session-id</span><span class="w">           </span><span class="nx">connection-id</span><span class="w"> </span><span class="nx">windows-user</span><span class="w">  </span><span class="nx">unix-user</span><span class="w">
+</span><span class="nf">-----------</span><span class="w"> </span><span class="nf">-------</span><span class="w"> </span><span class="nf">--------------------</span><span class="w"> </span><span class="nf">-------------</span><span class="w"> </span><span class="nf">-------------</span><span class="w"> </span><span class="nf">---------</span><span class="w">
+</span><span class="nx">cluster1-01</span><span class="w"> </span><span class="nx">svm1</span><span class="w">    </span><span class="nx">14047571662698709004</span><span class="w"> </span><span class="nx">3364714733</span><span class="w">    </span><span class="nx">DEMO\www-data</span><span class="w"> </span><span class="nx">www-data</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Desde el servidor Linux se crea un fichero en el volumen exportado por NFS y se verifica el usuario propietario.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">www</span><span class="nt">-data</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="err">$</span><span class="w"> </span><span class="kt">echo</span><span class="w"> </span><span class="err">&gt;</span><span class="w"> </span><span class="nf">/mnt/www-data/file_from_linux.txt</span><span class="w">
+</span><span class="p">[</span><span class="kt">www</span><span class="nt">-data</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="err">$</span><span class="w"> </span><span class="kt">ls</span><span class="w"> </span><span class="nt">-altr</span><span class="w"> </span><span class="nf">/mnt/www-data/</span><span class="w">
+</span><span class="kt">total</span><span class="w"> </span><span class="mi">8</span><span class="w">
+</span><span class="kt">drwxr</span><span class="nt">-xr-x</span><span class="o">.</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="kt">root</span><span class="w">     </span><span class="kt">root</span><span class="w">       </span><span class="mi">42</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">22</span><span class="w"> </span><span class="mi">14</span><span class="p">:</span><span class="mi">03</span><span class="w"> </span><span class="o">..</span><span class="w">
+</span><span class="kt">drwxrwxrwx</span><span class="w">  </span><span class="mi">9</span><span class="w"> </span><span class="kt">root</span><span class="w">     </span><span class="kt">root</span><span class="w">     </span><span class="mi">4096</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">23</span><span class="w"> </span><span class="mi">06</span><span class="p">:</span><span class="mi">05</span><span class="w"> </span><span class="o">.</span><span class="nf">snapshot</span><span class="w">
+</span><span class="nx">drwxrwxrwx</span><span class="w">  </span><span class="nx">2</span><span class="w"> </span><span class="nx">root</span><span class="w">     </span><span class="nx">root</span><span class="w">     </span><span class="nx">4096</span><span class="w"> </span><span class="nx">Jul</span><span class="w"> </span><span class="nx">23</span><span class="w"> </span><span class="nx">06:59</span><span class="w"> </span><span class="o">.</span><span class="w">
+</span><span class="nt">-rwxrwxrwx</span><span class="w">  </span><span class="mi">1</span><span class="w"> </span><span class="kt">www</span><span class="nt">-data</span><span class="w"> </span><span class="kt">www</span><span class="nt">-data</span><span class="w">    </span><span class="mi">1</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">23</span><span class="w"> </span><span class="mi">06</span><span class="p">:</span><span class="mi">59</span><span class="w"> </span><span class="no">file_from_linux.</span><span class="kt">txt</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Desde el servidor Windows se crea un fichero en el volumen exportado por SMB y se verifica el usuario propietario.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">F:\</span><span class="err">&gt;</span><span class="nx">echo</span><span class="w"> </span><span class="err">&gt;</span><span class="w"> </span><span class="nx">file_from_windows.txt</span><span class="w">
+
+</span><span class="nf">F:\</span><span class="err">&gt;</span><span class="nx">dir</span><span class="w">
+ </span><span class="nf">Volume</span><span class="w"> </span><span class="nx">in</span><span class="w"> </span><span class="nx">drive</span><span class="w"> </span><span class="nx">F</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">vol_www</span><span class="w">
+ </span><span class="nf">Volume</span><span class="w"> </span><span class="nx">Serial</span><span class="w"> </span><span class="nx">Number</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">8024-EB3D</span><span class="w">
+
+ </span><span class="nf">Directory</span><span class="w"> </span><span class="nx">of</span><span class="w"> </span><span class="nx">F:\</span><span class="w">
+
+</span><span class="mi">07</span><span class="nf">/23/2019</span><span class="w">  </span><span class="nx">07:44</span><span class="w"> </span><span class="nx">PM</span><span class="w">    </span><span class="err">&lt;</span><span class="nx">DIR</span><span class="err">&gt;</span><span class="w">          </span><span class="o">.</span><span class="w">
+</span><span class="mi">07</span><span class="nf">/23/2019</span><span class="w">  </span><span class="nx">07:44</span><span class="w"> </span><span class="nx">PM</span><span class="w">    </span><span class="err">&lt;</span><span class="nx">DIR</span><span class="err">&gt;</span><span class="w">          </span><span class="o">..</span><span class="w">
+</span><span class="mi">07</span><span class="nf">/23/2019</span><span class="w">  </span><span class="nx">06:59</span><span class="w"> </span><span class="nx">AM</span><span class="w">                 </span><span class="nx">1</span><span class="w"> </span><span class="nx">file_from_linux.txt</span><span class="w">
+</span><span class="mi">07</span><span class="nf">/23/2019</span><span class="w">  </span><span class="nx">07:44</span><span class="w"> </span><span class="nx">PM</span><span class="w">                </span><span class="nx">13</span><span class="w"> </span><span class="nx">file_from_windows.txt</span><span class="w">
+               </span><span class="mi">2</span><span class="w"> </span><span class="nf">File</span><span class="p">(</span><span class="nf">s</span><span class="p">)</span><span class="w">             </span><span class="mi">14</span><span class="w"> </span><span class="nf">bytes</span><span class="w">
+               </span><span class="mi">2</span><span class="w"> </span><span class="nf">Dir</span><span class="p">(</span><span class="nf">s</span><span class="p">)</span><span class="w">   </span><span class="mi">5</span><span class="p">,</span><span class="mi">098</span><span class="p">,</span><span class="mi">917</span><span class="p">,</span><span class="mi">888</span><span class="w"> </span><span class="nf">bytes</span><span class="w"> </span><span class="nx">free</span><span class="w">
+</span></code></pre></div></div>
+
+<p><img src="/assets/img/Acceso-multiprotocolo-con-ONTAP-004.png" alt="" /></p>
+
+<p>Se verifica que el usuario del mundo Windows propietario del fichero generado desde el mundo Linux es el mismo.</p>
+
+<p><img src="/assets/img/Acceso-multiprotocolo-con-ONTAP-005.png" alt="" /></p>
+
+<p>Se comprueba desde el servidor Linux el usuario propietario del fichero creado desde el entorno Windows.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">www</span><span class="nt">-data</span><span class="err">@</span><span class="kt">rhel1</span><span class="w"> </span><span class="nf">~</span><span class="p">]</span><span class="err">$</span><span class="w"> </span><span class="kt">ls</span><span class="w"> </span><span class="nt">-altr</span><span class="w"> </span><span class="nf">/mnt/www-data/</span><span class="w">
+</span><span class="kt">total</span><span class="w"> </span><span class="mi">8</span><span class="w">
+</span><span class="kt">drwxr</span><span class="nt">-xr-x</span><span class="o">.</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="kt">root</span><span class="w">     </span><span class="kt">root</span><span class="w">       </span><span class="mi">42</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">22</span><span class="w"> </span><span class="mi">14</span><span class="p">:</span><span class="mi">03</span><span class="w"> </span><span class="o">..</span><span class="w">
+</span><span class="kt">drwxrwxrwx</span><span class="w">  </span><span class="mi">9</span><span class="w"> </span><span class="kt">root</span><span class="w">     </span><span class="kt">root</span><span class="w">     </span><span class="mi">4096</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">23</span><span class="w"> </span><span class="mi">06</span><span class="p">:</span><span class="mi">05</span><span class="w"> </span><span class="o">.</span><span class="nf">snapshot</span><span class="w">
+</span><span class="nt">-rwxrwxrwx</span><span class="w">  </span><span class="nx">1</span><span class="w"> </span><span class="nx">www-data</span><span class="w"> </span><span class="nx">www-data</span><span class="w">    </span><span class="nx">1</span><span class="w"> </span><span class="nx">Jul</span><span class="w"> </span><span class="nx">23</span><span class="w"> </span><span class="nx">06:59</span><span class="w"> </span><span class="nx">file_from_linux.txt</span><span class="w">
+</span><span class="nt">-rwxrwxrwx</span><span class="w">  </span><span class="mi">1</span><span class="w"> </span><span class="kt">www</span><span class="nt">-data</span><span class="w"> </span><span class="kt">www</span><span class="nt">-data</span><span class="w">    </span><span class="mi">0</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">23</span><span class="w"> </span><span class="mi">07</span><span class="p">:</span><span class="mi">01</span><span class="w"> </span><span class="no">file_from_windows.</span><span class="kt">txt</span><span class="w">
+</span><span class="kt">drwxrwxrwx</span><span class="w">  </span><span class="mi">2</span><span class="w"> </span><span class="kt">root</span><span class="w">     </span><span class="kt">root</span><span class="w">     </span><span class="mi">4096</span><span class="w"> </span><span class="kt">Jul</span><span class="w"> </span><span class="mi">23</span><span class="w"> </span><span class="mi">07</span><span class="p">:</span><span class="mi">01</span><span class="w"> </span><span class="o">.</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Con comandos avanzados de ONTAP se puede verificar el usuario de cada fichero que coincide con los vistos desde cada uno de los entornos.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">cluster1::</span><span class="o">*</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">security</span><span class="w"> </span><span class="nx">file-directory</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-vserver</span><span class="w"> </span><span class="nx">svm1</span><span class="w"> </span><span class="nt">-path</span><span class="w"> </span><span class="nx">/vol_www/file_from_linux.txt</span><span class="w">
+
+                </span><span class="nf">Vserver:</span><span class="w"> </span><span class="nx">svm1</span><span class="w">
+              </span><span class="nf">File</span><span class="w"> </span><span class="nx">Path:</span><span class="w"> </span><span class="nx">/vol_www/file_from_linux.txt</span><span class="w">
+      </span><span class="nf">File</span><span class="w"> </span><span class="nx">Inode</span><span class="w"> </span><span class="nx">Number:</span><span class="w"> </span><span class="nx">97</span><span class="w">
+         </span><span class="nf">Security</span><span class="w"> </span><span class="nx">Style:</span><span class="w"> </span><span class="nx">ntfs</span><span class="w">
+        </span><span class="nf">Effective</span><span class="w"> </span><span class="nx">Style:</span><span class="w"> </span><span class="nx">ntfs</span><span class="w">
+         </span><span class="nf">DOS</span><span class="w"> </span><span class="nx">Attributes:</span><span class="w"> </span><span class="nx">20</span><span class="w">
+ </span><span class="nf">DOS</span><span class="w"> </span><span class="nx">Attributes</span><span class="w"> </span><span class="nx">in</span><span class="w"> </span><span class="nx">Text:</span><span class="w"> </span><span class="nf">---A----</span><span class="w">
+</span><span class="nx">Expanded</span><span class="w"> </span><span class="nx">Dos</span><span class="w"> </span><span class="nx">Attributes:</span><span class="w"> </span><span class="nf">-</span><span class="w">
+           </span><span class="nx">UNIX</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="nx">Id:</span><span class="w"> </span><span class="nx">33</span><span class="w">
+          </span><span class="nx">UNIX</span><span class="w"> </span><span class="nx">Group</span><span class="w"> </span><span class="nx">Id:</span><span class="w"> </span><span class="nx">33</span><span class="w">
+         </span><span class="nx">UNIX</span><span class="w"> </span><span class="nx">Mode</span><span class="w"> </span><span class="nx">Bits:</span><span class="w"> </span><span class="nx">777</span><span class="w">
+ </span><span class="nf">UNIX</span><span class="w"> </span><span class="nx">Mode</span><span class="w"> </span><span class="nx">Bits</span><span class="w"> </span><span class="nx">in</span><span class="w"> </span><span class="nx">Text:</span><span class="w"> </span><span class="nx">rwxrwxrwx</span><span class="w">
+                   </span><span class="nf">ACLs:</span><span class="w"> </span><span class="nx">NTFS</span><span class="w"> </span><span class="nx">Security</span><span class="w"> </span><span class="nx">Descriptor</span><span class="w">
+                         </span><span class="nf">Control:0x8004</span><span class="w">
+                         </span><span class="nf">Owner:DEMO\www-data</span><span class="w">
+                         </span><span class="nf">Group:DEMO\Domain</span><span class="w"> </span><span class="nx">Users</span><span class="w">
+                         </span><span class="nf">DACL</span><span class="w"> </span><span class="nf">-</span><span class="w"> </span><span class="nx">ACEs</span><span class="w">
+                           </span><span class="nx">ALLOW-Everyone-0x1f01ff-</span><span class="p">(</span><span class="nf">Inherited</span><span class="p">)</span><span class="w">
+
+</span><span class="nf">cluster1::</span><span class="o">*</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">vserver</span><span class="w"> </span><span class="nx">security</span><span class="w"> </span><span class="nx">file-directory</span><span class="w"> </span><span class="nx">show</span><span class="w"> </span><span class="nt">-vserver</span><span class="w"> </span><span class="nx">svm1</span><span class="w"> </span><span class="nt">-path</span><span class="w"> </span><span class="nx">/vol_www/file_from_windows.txt</span><span class="w">
+
+                </span><span class="nf">Vserver:</span><span class="w"> </span><span class="nx">svm1</span><span class="w">
+              </span><span class="nf">File</span><span class="w"> </span><span class="nx">Path:</span><span class="w"> </span><span class="nx">/vol_www/file_from_windows.txt</span><span class="w">
+      </span><span class="nf">File</span><span class="w"> </span><span class="nx">Inode</span><span class="w"> </span><span class="nx">Number:</span><span class="w"> </span><span class="nx">15442</span><span class="w">
+         </span><span class="nf">Security</span><span class="w"> </span><span class="nx">Style:</span><span class="w"> </span><span class="nx">ntfs</span><span class="w">
+        </span><span class="nf">Effective</span><span class="w"> </span><span class="nx">Style:</span><span class="w"> </span><span class="nx">ntfs</span><span class="w">
+         </span><span class="nf">DOS</span><span class="w"> </span><span class="nx">Attributes:</span><span class="w"> </span><span class="nx">20</span><span class="w">
+ </span><span class="nf">DOS</span><span class="w"> </span><span class="nx">Attributes</span><span class="w"> </span><span class="nx">in</span><span class="w"> </span><span class="nx">Text:</span><span class="w"> </span><span class="nf">---A----</span><span class="w">
+</span><span class="nx">Expanded</span><span class="w"> </span><span class="nx">Dos</span><span class="w"> </span><span class="nx">Attributes:</span><span class="w"> </span><span class="nf">-</span><span class="w">
+           </span><span class="nx">UNIX</span><span class="w"> </span><span class="nx">User</span><span class="w"> </span><span class="nx">Id:</span><span class="w"> </span><span class="nx">33</span><span class="w">
+          </span><span class="nx">UNIX</span><span class="w"> </span><span class="nx">Group</span><span class="w"> </span><span class="nx">Id:</span><span class="w"> </span><span class="nx">33</span><span class="w">
+         </span><span class="nx">UNIX</span><span class="w"> </span><span class="nx">Mode</span><span class="w"> </span><span class="nx">Bits:</span><span class="w"> </span><span class="nx">777</span><span class="w">
+ </span><span class="nf">UNIX</span><span class="w"> </span><span class="nx">Mode</span><span class="w"> </span><span class="nx">Bits</span><span class="w"> </span><span class="nx">in</span><span class="w"> </span><span class="nx">Text:</span><span class="w"> </span><span class="nx">rwxrwxrwx</span><span class="w">
+                   </span><span class="nf">ACLs:</span><span class="w"> </span><span class="nx">NTFS</span><span class="w"> </span><span class="nx">Security</span><span class="w"> </span><span class="nx">Descriptor</span><span class="w">
+                         </span><span class="nf">Control:0x8004</span><span class="w">
+                         </span><span class="nf">Owner:DEMO\www-data</span><span class="w">
+                         </span><span class="nf">Group:DEMO\Domain</span><span class="w"> </span><span class="nx">Users</span><span class="w">
+                         </span><span class="nf">DACL</span><span class="w"> </span><span class="nf">-</span><span class="w"> </span><span class="nx">ACEs</span><span class="w">
+                           </span><span class="nx">ALLOW-Everyone-0x1f01ff-</span><span class="p">(</span><span class="nf">Inherited</span><span class="p">)</span><span class="w">
+</span></code></pre></div></div>
+:ET

@@ -1,0 +1,109 @@
+I"�<p>Cloud Volumes ONTAP es la solución Cloud en modalidad IaaS que permite disponer de un sistema de almacenamiento enterprise dentro de los principales proveedores cloud públicos. En este ejemplo se va a mostrar el procedimiento para su despliegue en AWS Amazon Web Services.</p>
+
+<h3 id="oncommand-cloud-manager">OnCommand Cloud Manager</h3>
+
+<p>OnCommand Cloud Manager (OCCM) es el servicio que permite, entre otras cosas, el despliegue sencillo de Cloud Volumes ONTAP. Para desplegar OCCM simplemente hay que buscarlo en el buscar la AMI en el MarketPlace de AWS.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-001.png" alt="" /></p>
+
+<p>Y lanzarlo.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-002.png" alt="" /></p>
+
+<h4 id="instalación">Instalación</h4>
+
+<p>Se mantiene el tamaño de instancia que viene por defecto.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-003.png" alt="" /></p>
+
+<p>Se modifican los parámetros necesarios.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-004.png" alt="" /></p>
+
+<p>Se mantiene la configuración del almacenamiento por defecto.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-005.png" alt="" /></p>
+
+<p>Se añaden los tags que se quieran.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-006.png" alt="" /></p>
+
+<p>Y se mantiene el grupo de seguridad que la AMI crea por defecto.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-007.png" alt="" /></p>
+
+<p>Se selecciona la clave que se desea.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-008.png" alt="" /></p>
+
+<p>Transcurrido cierto tiempo, la instancia virtual de OnCommand Cloud Manager está preparada para su uso.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-009.png" alt="" /></p>
+
+<h3 id="cloud-volumes-ontap">Cloud Volumes ONTAP</h3>
+
+<h3 id="instalación-1">Instalación</h3>
+
+<p>Accediendo por https a la dirección IP del OnCommand Cloud Manager, se tiene acceso a la consola que permite descubrir e instanciar sistemas ONTAP.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-011.png" alt="" /></p>
+
+<p>Actualmente se permite crear una instancia Cloud Volumes ONTAP tanto en AWS como en Azure en modalidad de instancia simple o doble. En este ejemplo se utilizará la instancia simple de AWS.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-012.png" alt="" /></p>
+
+<p>Se rellenan los datos de las claves de seguridad.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-013.png" alt="" /></p>
+
+<p>Se establece un nombre para la instancia y la contraseña de acceso.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-014.png" alt="" /></p>
+
+<p>Por defecto el proceso selecciona la misma subnet del VPC donde se ha desplegado la instancia de OnCommand Cloud Manager.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-015.png" alt="" /></p>
+
+<p>Se permite la encriptación de datos.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-016.png" alt="" /></p>
+
+<p>Y se permite añadir una licencia de ONTAP que se pueda tener disponible.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-017.png" alt="" /></p>
+
+<p>Se puede escoger entre diferentes formatos preconfigurados en función del caso de uso que se desea utilizar.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-018.png" alt="" /></p>
+
+<p>Y permite dar de alta la instancia en el sitema de alerta de NetApp.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-019.png" alt="" /></p>
+
+<p>Si se desea se puede crear en el propio asistente un volumen de datos listo para ser consumido.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-020.png" alt="" /></p>
+
+<p>Se revisa la configuración y se termina el asistente.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-021.png" alt="" /></p>
+
+<h3 id="verificación">Verificación</h3>
+
+<p>Tras terminar el proceso se crea una nube en el que se va a poder monitorizar el proceso de instalación.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-022.png" alt="" /></p>
+
+<p>Una vez terminado queda la instancia de Cloud Volumes ONTAP disponible para ser utilizada.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-023.png" alt="" /></p>
+
+<p>Desde el punto de vista de AWS se trata de una instancia virtual EC2.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-024.png" alt="" /></p>
+
+<p>Si bien se trata del sistema operativo completo ONTAP con todas sus funciones ejecutándose en Amazon Web Services.</p>
+
+<p><img src="/assets/img/Desplegando-AWS-Cloud-Volumes-ONTAP-025.png" alt="" /></p>
+
+:ET

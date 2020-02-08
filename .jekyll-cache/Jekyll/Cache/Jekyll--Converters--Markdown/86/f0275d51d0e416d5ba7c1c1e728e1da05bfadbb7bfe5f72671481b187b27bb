@@ -1,0 +1,131 @@
+I"� <p>Programas y herramientas que instalo, y también hacer algunas personalizaciones, tras el despliegue del sistema operativo Fedora 26 en mi portátil.</p>
+
+<!--description-->
+
+<h3 id="actualización-del-sistema-operativo">Actualización del sistema operativo:</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>dnf update
+</code></pre></div></div>
+
+<h3 id="sublime-text">Sublime Text</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>rpm <span class="nt">-v</span> <span class="nt">--import</span> https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+<span class="nv">$ </span><span class="nb">sudo </span>dnf config-manager <span class="nt">--add-repo</span> https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
+<span class="nv">$ </span><span class="nb">sudo </span>dnf <span class="nb">install </span>sublime-text
+</code></pre></div></div>
+
+<p>Me gustar crear un symbolic links para poder ejecutarlo por comandos.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo ln</span> <span class="nt">-s</span> /opt/sublime_text/sublime_text /usr/local/bin/sublime
+</code></pre></div></div>
+
+<p>E instalar el <a href="https://packagecontrol.io/installation#st3">Package Control</a></p>
+
+<h3 id="docker">Docker</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>dnf <span class="nb">install </span>docker
+<span class="nv">$ </span><span class="nb">sudo </span>systemctl <span class="nb">enable </span>docker
+<span class="nv">$ </span><span class="nb">sudo </span>systemctl start docker
+</code></pre></div></div>
+
+<h3 id="aws-cli">AWS cli</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pip <span class="nb">install </span>awscli <span class="nt">--user</span>
+</code></pre></div></div>
+
+<h3 id="ansible">Ansible:</h3>
+
+<p>Dejar preparado el módulo <a href="http://docs.ansible.com/ansible/latest/list_of_storage_modules.html#netapp">Ansible for NetApp</a></p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>pip <span class="nb">install </span>ansible <span class="nt">--user</span>
+<span class="nv">$ </span>pip <span class="nb">install </span>netapp-lib <span class="nt">--user</span>
+</code></pre></div></div>
+
+<p>Los siguientes comandos muestran que son necesarios más paquetes y la instalación de los mismos.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>python <span class="nt">-c</span> <span class="s2">"from netapp_lib.api.zapi import zapi"</span> <span class="o">&amp;&amp;</span> <span class="nb">echo</span> <span class="nv">$?</span>
+<span class="nv">$ </span>python <span class="nt">-c</span> <span class="s2">"from netapp_lib.api.zapi import errors"</span> <span class="o">&amp;&amp;</span> <span class="nb">echo</span> <span class="nv">$?</span>
+<span class="nv">$ </span>pip <span class="nb">install </span>lxml
+<span class="nv">$ </span>pip <span class="nb">install </span>oslo_log <span class="nt">--ignore-installed</span> <span class="nt">--user</span>
+</code></pre></div></div>
+
+<h3 id="spotify">Spotify</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>dnf config-manager <span class="nt">--add-repo</span><span class="o">=</span>http://negativo17.org/repos/fedora-spotify.repo
+<span class="nv">$ </span>dnf <span class="nb">install </span>spotify
+</code></pre></div></div>
+
+<h3 id="jekyll">Jekyll</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>dnf <span class="nb">install </span>ruby-devel  
+<span class="nv">$ </span><span class="nb">sudo </span>dnf <span class="nb">install </span>rubygems-devel
+<span class="nv">$ </span><span class="nb">sudo </span>gem <span class="nb">install </span>jekyll
+<span class="nv">$ </span>gem <span class="nb">install </span>bundler	gi
+<span class="nv">$ </span><span class="nb">sudo ln</span> <span class="nt">-s</span> /usr/local/bin/jekyll /usr/bin/jekyll
+<span class="nv">$ </span>gem <span class="nb">install </span>redis-stat
+</code></pre></div></div>
+
+<h3 id="vlc">VLC</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>su -
+<span class="nv">$ </span>dnf <span class="nb">install </span>https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-<span class="si">$(</span>rpm <span class="nt">-E</span> %fedora<span class="si">)</span>.noarch.rpm
+<span class="nv">$ </span>dnf <span class="nb">install </span>vlc
+</code></pre></div></div>
+
+<h3 id="montaje-del-disco-duro-interno">Montaje del disco duro interno</h3>
+
+<p>Tengo Fedora ejecutándose en un USB externo 3.0 por lo que monto el disco duro interno donde tengo el Windows</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c">### /etc/fstab</span>
+...
+/dev/sda2		/mnt/win		ntfs-3g	defaults	0 0
+</code></pre></div></div>
+
+<h3 id="webex">Webex</h3>
+
+<p>Desafortunadamente no está soportado el software Webex en Fedora 26. He conseguido poder acceder a sesiones con los siguientes comandos aunque no puedo compartir mi escritorio.</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">sudo </span>dnf <span class="nb">install </span>icedtea-web java-1.8.0-openjdk pangox-compat.i686 libXmu.i686 mesa-libEGL.i686 gtk2.i686 libpng.i686 alsa-lib.i686 libXtst.i686 libart_lgpl.i686
+
+<span class="nv">$ </span><span class="nb">sudo</span> /usr/sbin/alternatives <span class="nt">--install</span> /usr/lib64/mozilla/plugins/libjavaplugin.so libjavaplugin.so.x86_64 /usr/lib64/IcedTeaPlugin.so 200000
+</code></pre></div></div>
+
+<p>Hay un test para ver que funciona <a href="http://www.webex.com/test-meeting.html">aquí</a>.</p>
+
+<h3 id="cisco-vpn">Cisco VPN</h3>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">tar </span>zxv &lt; anyconnect-linux64-4.5.00058-predeploy-k9.tar.gz
+<span class="nv">$ </span><span class="nb">cd </span>anyconnect-linux64-4.5.00058
+<span class="nv">$ </span><span class="nb">cd </span>vpn
+<span class="nv">$ </span><span class="nb">sudo</span> ./vpn_install.sh
+<span class="o">(</span>Accept the license agreement<span class="o">)</span>
+<span class="nv">$ </span><span class="nb">cd</span> ../dart
+<span class="nv">$ </span><span class="nb">sudo</span> ./dart_install.sh
+<span class="o">(</span>Accept the license agreement<span class="o">)</span>
+</code></pre></div></div>
+
+<p>Siguiendo los pasos anteriores, la ejecución me falla con el siguiente error:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>/opt/cisco/anyconnect/bin/vpnui 
+error <span class="k">while </span>loading shared libraries: libpangox-1.0.so.0: cannot open shared object file: No such file or directory
+</code></pre></div></div>
+
+<p>Puede resolverse copiando la siguiente librería en el mismo path</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">cd</span> /usr/lib64
+<span class="nv">$ </span><span class="nb">cp </span>libpangoxft-1.0.so.0 libpangox-1.0.so.0
+</code></pre></div></div>
+
+<h3 id="chrome">Chrome</h3>
+
+<p>Instalar la última versión de <a href="https://www.google.com/chrome/browser/desktop/index.html">Chrome</a>.</p>
+
+<h3 id="postman">Postman</h3>
+
+<p>Instalar la última versión de <a href="https://www.getpostman.com/apps">Postman</a>.</p>
+
+<h3 id="citrix-receiver">Citrix Receiver</h3>
+
+<p>Un buen artículo de Ken Fallon está <a href="http://kenfallon.com/installing-citrix-on-fedora-21/">aquí</a>.</p>
+
+:ET

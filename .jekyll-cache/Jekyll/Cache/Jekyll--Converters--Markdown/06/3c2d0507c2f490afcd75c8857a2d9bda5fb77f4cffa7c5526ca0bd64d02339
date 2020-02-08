@@ -1,0 +1,67 @@
+I"�,<p>La <a href="https://mysupport.netapp.com/tools/info/ECMLP2310788I.html?productID=61926">PowerShell Toolkit</a> de NetApp unifica todos los módulos de Powershell en un único paquete. Actualmente soporta las cabinas de almacenamiento ONTAP en todas sus variantes (FAS, AFF, Cloud ONTAP) y cabinas E-Series.</p>
+
+<p>Tras instalar el paquete con un ‘siguiente, siguiente, siguiente’ y abrir una nueva consola de Powershell, es interesante ejecutar el siguiente comando que abrirá un archivo HTML con toda la información de la integración con NetApp, detalles de cada uno de los cmdlets, y ejemplos de uso.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">PS</span><span class="w"> </span><span class="nx">C:\</span><span class="err">&gt;</span><span class="w"> </span><span class="nx">show-nchelp</span><span class="w">
+</span></code></pre></div></div>
+
+<p>A continuación se muestra un primer script de ejemplo tipo <a href="https://en.wikipedia.org/wiki/%22Hello,_World!%22_program">Hello World</a> en el que se listan los volúmenes de una cabina ONTAP que no son root y que no tienen la funcionalidad de auto crecimiento habilitado.</p>
+
+<h3 id="código-de-ejemplo">Código de ejemplo</h3>
+
+<p>Primero se ha creado un simple script que pregunta por la contraseña de una cabina y la almacena en un fichero de texto de forma cifrada para evitar tener contraseñas en claro.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># script name: create_securestring_file.ps1</span><span class="w">
+
+</span><span class="nv">$clusterName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Read-Host</span><span class="w"> </span><span class="s2">"What is the cluster's name?"</span><span class="w">
+</span><span class="nv">$password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Read-Host</span><span class="w"> </span><span class="s1">'What is your password?'</span><span class="w"> </span><span class="nt">-AsSecureString</span><span class="w">
+
+</span><span class="nv">$PathFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">".\</span><span class="nv">$clusterName</span><span class="s2">.txt"</span><span class="w">
+</span><span class="nv">$password</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nf">convertfrom-securestring</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nf">out-file</span><span class="w"> </span><span class="nv">$PathFile</span><span class="w">
+</span></code></pre></div></div>
+
+<p>El siguiente script se conecta a una cabina ONTAP y lista los volúmenes que no sean root y que no tengan habilitado el autosize.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># script name:  check_nonroot_vols_without_autosize.ps1</span><span class="w">
+
+</span><span class="nv">$clusterName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"cluster1"</span><span class="w">
+</span><span class="nv">$username</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"admin"</span><span class="w">
+</span><span class="nv">$PathFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">".\</span><span class="nv">$clusterName</span><span class="s2">.txt"</span><span class="w">
+
+</span><span class="c"># Get the secured password from the cluster</span><span class="w">
+</span><span class="nv">$Secstr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">cat</span><span class="w"> </span><span class="nv">$PathFile</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nf">convertto-securestring</span><span class="w">
+</span><span class="nv">$Cred</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">new-object</span><span class="w"> </span><span class="nt">-typename</span><span class="w"> </span><span class="nx">System.Management.Automation.PSCredential</span><span class="w"> </span><span class="nt">-argumentlist</span><span class="w"> </span><span class="nv">$username</span><span class="p">,</span><span class="w"> </span><span class="nv">$Secstr</span><span class="w">
+
+</span><span class="c"># Connect to cluster</span><span class="w">
+</span><span class="nf">Write-Host</span><span class="w"> </span><span class="s2">"Connecting to cluster </span><span class="nv">$destinationClusterName</span><span class="s2"> ... "</span><span class="w"> </span><span class="nt">-NoNewLine</span><span class="w">
+</span><span class="nv">$conn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">Connect-NcController</span><span class="w"> </span><span class="nt">-Name</span><span class="w"> </span><span class="nv">$clusterName</span><span class="w"> </span><span class="nt">-HTTPS</span><span class="w"> </span><span class="nt">-Credential</span><span class="w"> </span><span class="nv">$Cred</span><span class="w">
+</span><span class="kr">if</span><span class="w"> </span><span class="p">(</span><span class="nv">$conn</span><span class="w"> </span><span class="o">-eq</span><span class="w"> </span><span class="bp">$null</span><span class="p">)</span><span class="w">
+    </span><span class="p">{</span><span class="w">
+    </span><span class="nf">Write-Host</span><span class="w"> </span><span class="s2">"Connection to host </span><span class="nv">$destinationClusterName</span><span class="s2"> failed!"</span><span class="w"> </span><span class="nt">-foregroundcolor</span><span class="w"> </span><span class="s2">"red"</span><span class="w">
+    </span><span class="kr">break</span><span class="w">
+    </span><span class="p">}</span><span class="w">
+</span><span class="kr">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nf">Write-Host</span><span class="w"> </span><span class="s2">"Done."</span><span class="w"> </span><span class="nt">-foregroundcolor</span><span class="w"> </span><span class="s2">"green"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+
+</span><span class="nf">Get-NcVol</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="err">?</span><span class="p">{</span><span class="w"> </span><span class="p">(</span><span class="bp">$_</span><span class="o">.</span><span class="nf">VolumeStateAttributes</span><span class="o">.</span><span class="nf">IsVserverRoot</span><span class="w"> </span><span class="o">-eq</span><span class="w"> </span><span class="bp">$false</span><span class="p">)</span><span class="w"> </span><span class="o">-and</span><span class="w"> </span><span class="p">(</span><span class="bp">$_</span><span class="o">.</span><span class="nf">VolumeAutosizeAttributes</span><span class="o">.</span><span class="nf">IsEnabled</span><span class="w"> </span><span class="o">-eq</span><span class="w"> </span><span class="bp">$false</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<h3 id="ejecución-del-ejemplo">Ejecución del ejemplo</h3>
+
+<p>Por último se muestra la ejecución de los dos ejemplos de código mostrado anteriormente.</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">PS</span><span class="w"> </span><span class="nx">C:\</span><span class="err">&gt;</span><span class="w"> </span><span class="o">.</span><span class="nx">\create_secure_password.ps1</span><span class="w">
+</span><span class="nf">What</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">the</span><span class="w"> </span><span class="nx">clusters</span><span class="w"> </span><span class="nx">name</span><span class="err">?</span><span class="p">:</span><span class="w"> </span><span class="nx">cluster1</span><span class="w">
+</span><span class="nf">What</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">your</span><span class="w"> </span><span class="nx">password</span><span class="err">?</span><span class="p">:</span><span class="w"> </span><span class="o">********</span><span class="w">
+</span><span class="nf">PS</span><span class="w"> </span><span class="nx">C:\</span><span class="err">&gt;</span><span class="w">
+</span><span class="nf">PS</span><span class="w"> </span><span class="nx">C:\</span><span class="err">&gt;</span><span class="w"> </span><span class="o">.</span><span class="nx">\check_nonroot_vols_without_autosize.ps1</span><span class="w">
+</span><span class="nf">Connecting</span><span class="w"> </span><span class="nx">to</span><span class="w"> </span><span class="nx">cluster</span><span class="w">  </span><span class="o">...</span><span class="w"> </span><span class="nx">Done.</span><span class="w">
+
+</span><span class="nf">Name</span><span class="w">                      </span><span class="nx">State</span><span class="w">       </span><span class="nx">TotalSize</span><span class="w">  </span><span class="nx">Used</span><span class="w">  </span><span class="nx">Available</span><span class="w"> </span><span class="nx">Dedupe</span><span class="w"> </span><span class="nx">Aggregate</span><span class="w">                 </span><span class="nx">Vserver</span><span class="w">
+</span><span class="nf">----</span><span class="w">                      </span><span class="nf">-----</span><span class="w">       </span><span class="nf">---------</span><span class="w">  </span><span class="nf">----</span><span class="w">  </span><span class="nf">---------</span><span class="w"> </span><span class="nf">------</span><span class="w"> </span><span class="nf">---------</span><span class="w">                 </span><span class="nf">-------</span><span class="w">
+</span><span class="nx">myvol2</span><span class="w">                    </span><span class="nx">online</span><span class="w">         </span><span class="nx">1.0</span><span class="w"> </span><span class="nx">GB</span><span class="w">    </span><span class="nx">5</span><span class="o">%</span><span class="w">   </span><span class="nx">972.3</span><span class="w"> </span><span class="nx">MB</span><span class="w"> </span><span class="nx">False</span><span class="w">  </span><span class="nx">aggr2_cluster1_01</span><span class="w">         </span><span class="nx">svm1</span><span class="w">
+</span><span class="nx">svm1_vol01</span><span class="w">                </span><span class="nx">online</span><span class="w">         </span><span class="nx">1.0</span><span class="w"> </span><span class="nx">GB</span><span class="w">    </span><span class="nx">5</span><span class="o">%</span><span class="w">   </span><span class="nx">971.4</span><span class="w"> </span><span class="nx">MB</span><span class="w"> </span><span class="nx">False</span><span class="w">  </span><span class="nx">aggr1_cluster1_01</span><span class="w">         </span><span class="nx">svm1</span><span class="w">
+</span></code></pre></div></div>
+
+:ET
