@@ -1,0 +1,52 @@
+I"G<p>Tras haber completado la <a href="/2019/09/02/Configuracion-de-SaaS-Backup-para-proteger-Office-365.html">configuración</a> de SaaS Backup simplemente hay que acceder acceder a la parte de servicios y OneDrive for Business.</p>
+
+<p>La configuración está basada en tres políticas de backup: Tier 1, Tier 2 y Tier 3. Cada política tiene establecida un RTO diferente (12 horas , 18 horas y 24 horas respectívamente) y una retención configurable en cada política (1 año, 2 años, 3 años, 5 años, 7 años y para siempre). SaaS Backup se encarga de lanzar las tareas en tiempo y forma que garantize el RTO de cada política.</p>
+
+<p>En este caso se ha creado un sitio de SharePoint nuevo de ejemplo.</p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-001.png" alt="" /></p>
+
+<p>Una vez creado se accede a la parte de servicios y configuración ‘settings’</p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-002.png" alt="" /></p>
+
+<p>Se sincronizan los sitios de SharePoint Online.</p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-003.png" alt="" /></p>
+
+<p>Esperar a que se complete la tarea.</p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-004.png" alt="" /></p>
+
+<h3 id="backup">Backup</h3>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-005.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-006.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-007.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-008.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-009.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-010.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-011.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-012.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-013.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-014.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-015.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-016.png" alt="" /></p>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-017.png" alt="" /></p>
+
+<h3 id="restore">Restore</h3>
+
+<p><img src="/assets/img/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup-018.png" alt="" /></p>
+:ET

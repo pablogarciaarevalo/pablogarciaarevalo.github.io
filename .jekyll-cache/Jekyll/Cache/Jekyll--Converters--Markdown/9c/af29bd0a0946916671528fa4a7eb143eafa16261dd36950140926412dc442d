@@ -1,0 +1,79 @@
+I"�<p>Tras terminar el <a href="/2019/08/04/Registro-de-SaaS-Backup-para-proteger-Office-365.html">registro</a> de SaaS Backup, simplemente hay que hacer algunas configuraciones para personalizarlo a cada entorno de Office 365.</p>
+
+<p>La configuración está basada en tres políticas de backup: Tier 1, Tier 2 y Tier 3. Cada política tiene establecida un RTO diferente (12 horas , 18 horas y 24 horas respectívamente) y una retención configurable en cada política (1 año, 2 años, 3 años, 5 años, 7 años y para siempre). SaaS Backup se encarga de lanzar las tareas en tiempo y forma que garantize el RTO de cada política.</p>
+
+<p>En la parte superior se verá un resumen de los discos protegidos, los pendientes y los que están sin proteger.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-001.png" alt="" /></p>
+
+<h3 id="sincronización">Sincronización</h3>
+
+<p>Para sincronizar el resto de servicios hay que acceder al menú servicios, y ‘settings’</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-002.png" alt="" /></p>
+
+<p>Se sincroniza el servicio de OneDrive.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-003.png" alt="" /></p>
+
+<p>Se activa el servicio de grupos de Office 365.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-004.png" alt="" /></p>
+
+<p>En la parte superior, se ha de garantizar el consentimiento de acceso con el usuario de servicio.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-005.png" alt="" /></p>
+
+<p>Para cada uno de los servicios, se puede personalizar la configuración.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-006.png" alt="" /></p>
+
+<p>Pueden verse los detalles de cada uno.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-007.png" alt="" /></p>
+
+<h3 id="configuración-de-la-cuenta">Configuración de la cuenta</h3>
+
+<p>Desde el menú ‘accounts settings’ se accede a la parte de la configuración de la cuenta de SaaS Backup.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-008.png" alt="" /></p>
+
+<p>Se pueden crear nuevos usuarios para acceder al servicio de SaaS Backup.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-009.png" alt="" /></p>
+
+<p>Y establecer a cada uno de los usuarios diferentes roles.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-010.png" alt="" /></p>
+
+<p>Es posible el purgado de contenido protegido así como la liberación de licencias de SaaS Backup no utilizadas, por ejemplo, cuando se da de baja un usuario.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-011.png" alt="" /></p>
+
+<p>SaaS Backup permite proteger de forma automática y desatendida usuarios que pertenecen a un grupo de Office 365. En este caso se muestra un grupo de seguridad de Office 365 que luego se utilizará para añadir los usuarios de forma automática.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-012.png" alt="" /></p>
+
+<p>Y los usuarios que pertenecen al grupo.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-013.png" alt="" /></p>
+
+<p>Simplemente hay que añadir ese grupo para que se puede descubrir posteriormente.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-014.png" alt="" /></p>
+
+<p>Una vez añadidos, se pueden ver y borrar los grupos añadidos.</p>
+
+<p><img src="/assets/img/Configuracion-de-SaaS-Backup-para-proteger-Office-365-015.png" alt="" /></p>
+
+<h3 id="backup-y-restore">Backup y restore</h3>
+
+<p>Tras haber personalizado la configuración de backup, es momento de hacer backup y restore de:</p>
+
+<ul>
+  <li><a href="/2019/10/17/Backup-y-restore-de-Exchange-Office-365-con-SaaS-Backup.html">Exchange</a></li>
+  <li><a href="/2019/10/28/Backup-y-restore-de-OneDrive-Office-365-con-SaaS-Backup.html">OneDrive</a></li>
+  <li><a href="/2019/12/08/Backup-y-restore-de-SharePoint-Office-365-con-SaaS-Backup.html">SharePoint</a></li>
+</ul>
+
+:ET

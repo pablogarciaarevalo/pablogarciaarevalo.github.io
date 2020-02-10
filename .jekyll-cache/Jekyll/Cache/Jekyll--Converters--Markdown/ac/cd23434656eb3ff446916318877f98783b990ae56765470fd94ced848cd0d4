@@ -1,0 +1,29 @@
+I"?<ol>
+  <li>Seleccionar la opción editar en el menú de arranque de grub</li>
+  <li>Seleccionar la opción editar (e)</li>
+  <li>Ir a la línea de Linux 16 y cambiar ‘ro’ por ‘rw init=/sysroot/bin/sh’</li>
+  <li>Selecciona Control+x para comenzar en modo single user</li>
+  <li>Accede al sistema con el comando
+    <div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">chroot</span><span class="w"> </span><span class="nx">/sysroot</span><span class="w">
+</span></code></pre></div>    </div>
+  </li>
+  <li>Reiniciar la contrasela
+    <div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">passwd</span><span class="w"> </span><span class="nx">root</span><span class="w">
+</span></code></pre></div>    </div>
+  </li>
+  <li>Actualizar la información de SElinux
+    <div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">touch</span><span class="w"> </span><span class="nx">/.autorelabel</span><span class="w">
+</span></code></pre></div>    </div>
+  </li>
+  <li>Salir de chroot</li>
+  <li>Salir
+    <div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kr">exit</span><span class="w">
+</span></code></pre></div>    </div>
+  </li>
+  <li>Reiniciar ‘reboot’
+    <div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">reboot</span><span class="w">
+</span></code></pre></div>    </div>
+  </li>
+</ol>
+
+:ET

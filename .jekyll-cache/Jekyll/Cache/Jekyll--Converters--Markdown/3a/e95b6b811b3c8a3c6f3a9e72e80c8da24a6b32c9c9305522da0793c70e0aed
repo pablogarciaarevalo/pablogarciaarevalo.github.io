@@ -1,0 +1,18 @@
+I"¢<p>Revisar y borrar los ficheros necesarios del directorio /etc/yum.repos.d/. Crear un nuevo repositorio centos1.repo en el directorio /etc/yum.repos.d/ con el siguiente contenido:</p>
+
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span><span class="kt">centos</span><span class="p">]</span><span class="w">
+</span><span class="nf">name</span><span class="o">=</span><span class="nf">CentOS-7</span><span class="w">
+</span><span class="nf">baseurl</span><span class="o">=</span><span class="nf">http://ftp.heanet.ie/pub/centos/7/os/x86_64/</span><span class="w">
+</span><span class="nf">enabled</span><span class="o">=</span><span class="mi">1</span><span class="w">
+</span><span class="nf">gpgcheck</span><span class="o">=</span><span class="mi">1</span><span class="w">
+</span><span class="nf">gpgkey</span><span class="o">=</span><span class="nf">http://ftp.heanet.ie/pub/centos/7/os/x86_64/RPM-GPG-KEY-CentOS-7</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Ejecutar el siguiente comando:</p>
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">yum</span><span class="w"> </span><span class="nx">repolist</span><span class="w">
+</span></code></pre></div></div>
+<p>Revisar si se actualiza el sistema operativo o se instala el paquete que se quiere</p>
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">yum</span><span class="w"> </span><span class="nx">update</span><span class="w"> </span><span class="nt">-y</span><span class="w">
+</span><span class="nf">yum</span><span class="w"> </span><span class="nx">install</span><span class="w"> </span><span class="nt">-y</span><span class="w"> </span><span class="err">&lt;</span><span class="nx">nombre_paquete</span><span class="err">&gt;</span><span class="w">
+</span></code></pre></div></div>
+:ET

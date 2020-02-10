@@ -1,0 +1,35 @@
+I"@<p>https://www.unixmen.com/reset-root-password-centos-7/</p>
+
+<ol>
+  <li>In the boot grub menu select option to edit.</li>
+</ol>
+
+<ul>
+  <li>
+    <p>2 – Select Option to edit (e).</p>
+  </li>
+  <li>3 – Go to the line of Linux 16 and change ro with rw init=/sysroot/bin/sh.</li>
+  <li></li>
+  <li>Selection_006</li>
+  <li></li>
+  <li>4 – Now press Control+x to start on single user mode.</li>
+  <li></li>
+  <li>Selection_007</li>
+  <li></li>
+  <li>5 – Now access the system with this command.</li>
+  <li></li>
+  <li>chroot /sysroot</li>
+  <li>6 – Reset the password.</li>
+  <li></li>
+  <li>passwd root</li>
+  <li>7 – Update selinux information</li>
+  <li></li>
+  <li>touch /.autorelabel</li>
+  <li>8 – Exit chroot</li>
+  <li></li>
+  <li>exit</li>
+  <li>9 – Reboot your system</li>
+  <li></li>
+  <li>reboot</li>
+</ul>
+:ET

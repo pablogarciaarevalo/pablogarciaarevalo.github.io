@@ -1,0 +1,12 @@
+I"`<h3 id="cambiar-el-nombre">Cambiar el nombre</h3>
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">hostnamectl</span><span class="w"> </span><span class="nx">set-hostname</span><span class="w"> </span><span class="err">&lt;</span><span class="nx">nuevo-nombre</span><span class="err">&gt;</span><span class="w">
+</span></code></pre></div></div>
+
+<h3 id="cambiar-la-dirección-ip">Cambiar la dirección IP</h3>
+<p>Editar el fichero de red:</p>
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">vi</span><span class="w"> </span><span class="nx">/etc/sysconfig/network-scripts/</span><span class="err">&lt;</span><span class="nx">nombre-interface-red</span><span class="err">&gt;</span><span class="w">
+</span></code></pre></div></div>
+<h3 id="reiniciar">Reiniciar</h3>
+<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">init</span><span class="w"> </span><span class="nx">6</span><span class="w">
+</span></code></pre></div></div>
+:ET
