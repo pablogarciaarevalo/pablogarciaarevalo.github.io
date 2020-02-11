@@ -1,16 +1,0 @@
-I"<p>Delete this centos.repo (or change enabled=0 for all) and Create a new repository centos1.repo in /etc/yum.repos.d/ with the content:</p>
-<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="w">
-</span><span class="p">[</span><span class="kt">centos</span><span class="p">]</span><span class="w">
-</span><span class="nf">name</span><span class="o">=</span><span class="nf">CentOS-7</span><span class="w">
-</span><span class="nf">baseurl</span><span class="o">=</span><span class="nf">http://ftp.heanet.ie/pub/centos/7/os/x86_64/</span><span class="w">
-</span><span class="nf">enabled</span><span class="o">=</span><span class="mi">1</span><span class="w">
-</span><span class="nf">gpgcheck</span><span class="o">=</span><span class="mi">1</span><span class="w">
-</span><span class="nf">gpgkey</span><span class="o">=</span><span class="nf">http://ftp.heanet.ie/pub/centos/7/os/x86_64/RPM-GPG-KEY-CentOS-7</span><span class="w">
-</span></code></pre></div></div>
-<p>Then run</p>
-<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">yum</span><span class="w"> </span><span class="nx">repolist</span><span class="w">
-</span></code></pre></div></div>
-<p>Now check if you can install any package like</p>
-<div class="language-posh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nf">yum</span><span class="w"> </span><span class="nx">update</span><span class="w">
-</span></code></pre></div></div>
-:ET
