@@ -1,0 +1,50 @@
+---
+layout: default
+title: Space reduction percentage
+---
+
+<div>
+
+  <h2>Porcentaje de reducción de espacio de eficiencia</h2>
+
+Ejemplos: <b>2</b>:1 = 50%, <b>5</b>:1 = 80%
+
+  <table>
+    <tr>
+        <td></td>
+        <td><b>Calculadora de eficiencia</b></td>
+    </tr>
+
+    <tr>
+        <td>Ratio de reducción de espacio (X:1)</td>
+        <td><input type='text' id='MBps_forIOPS' class='calculadoraIOPS'/></td>
+    </tr>
+     
+    <tr>
+        <td>= Porcentaje de reducción de espacio (%)</td>
+        <td><input type='text' id='totalIOPS' disabled /></td>
+    </tr>
+</table>
+ 
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+ 
+<script>
+
+$('.calculadoraIOPS').keyup(function () {
+ 
+ // Get the values  
+ var mbpsforIOPS = Number($('input[id="MBps_forIOPS"]').val());
+
+ // (MBps Throughput / KB per IO) * 1024
+ var sumIOPS = ((mbpsforIOPS - 1)/ mbpsforIOPS) * 100;
+
+ // set the total values
+ $('#totalIOPS').val(sumIOPS);
+
+});
+
+</script>
+
+</div>
