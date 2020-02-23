@@ -1,0 +1,125 @@
+---
+layout: default
+title: IOPS, MBps and block size calculator
+---
+
+<div>
+
+  <h2>Calculadora de IOPS, MBps y tamaño de bloque</h2>
+
+  <table>
+    <tr>
+        <td></td>
+        <td><b>Calculadora de IOPS</b></td>
+    </tr>
+
+    <tr>
+        <td>MBps</td>
+        <td><input type='text' id='MBps_forIOPS' class='calculadoraIOPS'/></td>
+    </tr>
+     
+    <tr>
+        <td>KB per IO</td>
+        <td><input type='text' id='KBperIO_forIOPS' class='calculadoraIOPS'/></td>
+    </tr>
+     
+    <tr>
+        <td>IOPS</td>
+        <td><input type='text' id='totalIOPS' disabled /></td>
+    </tr>
+</table>
+ 
+<table>
+    <tr>
+        <td></td>
+        <td><b>Calculadora de MBps</b></td>
+    </tr>
+
+    <tr>
+        <td>IOPS</td>
+        <td><input type='text' id='IOPS_forMBps' class='calculadoraMBps'/></td>
+    </tr>
+     
+    <tr>
+        <td>KB per IO</td>
+        <td><input type='text' id='KBperIO_forMBps' class='calculadoraMBps'/></td>
+    </tr>
+     
+    <tr>
+        <td>MBps</td>
+        <td><input type='text' id='totalMBps' disabled /></td>
+    </tr>
+</table>
+
+<table>
+    <tr>
+        <td></td>
+        <td><b>Calculadora del tamaño de bloque</b></td>
+    </tr>
+
+    <tr>
+        <td>IOPS</td>
+        <td><input type='text' id='IOPS_KBperIO' class='calculadoraKBperIO'/></td>
+    </tr>
+     
+    <tr>
+        <td>MBps</td>
+        <td><input type='text' id='MBps_KBperIO' class='calculadoraKBperIO'/></td>
+    </tr>
+     
+    <tr>
+        <td>KB per IO</td>
+        <td><input type='text' id='totalKBperIO' disabled /></td>
+    </tr>
+</table>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+ 
+<script>
+
+$('.calculadoraIOPS').keyup(function () {
+ 
+ // Get the values  
+ var mbpsforIOPS = Number($('input[id="MBps_forIOPS"]').val());
+ var kbperioforIOPS = Number($('input[id="KBperIO_forIOPS"]').val());
+
+ // (MBps Throughput / KB per IO) * 1024
+ var sumIOPS = (mbpsforIOPS / kbperioforIOPS) * 1024;
+
+ // set the total values
+ $('#totalIOPS').val(sumIOPS);
+
+});
+
+$('.calculadoraMBps').keyup(function () {
+
+ // Get the values  
+ var iopsforMBps = Number($('input[id="IOPS_forMBps"]').val());
+ var kbperioforMBps = Number($('input[id="KBperIO_forMBps"]').val());
+
+  // MBps = (IOPS * KB per IO) / 1024
+ var sumMBps = (iopsforMBps * kbperioforMBps) / 1024;
+
+ // set the total values
+ $('#totalMBps').val(sumMBps);
+
+});
+
+$('.calculadoraKBperIO').keyup(function () {
+
+// Get the values  
+var iopsforKBperIO = Number($('input[id="IOPS_KBperIO"]').val());
+var mbpsforKBperIO = Number($('input[id="MBps_KBperIO"]').val());
+
+ // KB per IO = (MBps * 1024) / IOPS
+var sumKBperIO = (mbpsforKBperIO * 1024) / iopsforKBperIO;
+
+// set the total values
+
+$('#totalKBperIO').val(sumKBperIO);
+
+});
+
+</script>
+
+</div>
