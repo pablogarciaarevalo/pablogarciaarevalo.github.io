@@ -1,6 +1,6 @@
 _site
 .sass-cache
 .jekyll-metadata
-.jekyll-cache
+.jekyll-cache/*
 _drafts
 google078c0ba00cd9a664.html
